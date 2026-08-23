@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart.js CDN for Visual Dashboards -->
+  <!-- Chart.js CDN for Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- HTML5 QR / Barcode Scanner CDN -->
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -35,7 +35,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased">
+<body class="bg-slate-100 text-slate-900 min-h-screen font-sans antialiased">
 
   <!-- ================= AUTH MODAL (LOGIN) ================= -->
   <div id="authOverlay" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
@@ -63,11 +63,11 @@
           <input type="password" id="loginPassword" value="admin123" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none text-white font-mono">
         </div>
         
-        <button id="loginSubmitBtn" onclick="executeLogin()" type="button" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] font-bold rounded-lg text-slate-950 transition flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 cursor-pointer">
+        <button id="loginSubmitBtn" onclick="handleLoginSubmit()" type="button" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] font-bold rounded-lg text-slate-950 transition flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 cursor-pointer">
           <span id="loginBtnText">Sign In to Station</span>
         </button>
 
-        <button onclick="quickDemoLogin()" type="button" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition cursor-pointer">
+        <button onclick="instantOneClickEntry()" type="button" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition cursor-pointer">
           ⚡ Instant One-Click Entry
         </button>
 
@@ -91,7 +91,7 @@
         </div>
 
         <nav class="p-3 space-y-1 text-sm font-medium">
-          <button onclick="switchTab('b2c')" id="nav-b2c" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
+          <button onclick="switchTab('b2c')" id="nav-b2c" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-slate-800 text-amber-400 cursor-pointer">
             <span>🛍️</span> <span>B2C Packing Tracker</span>
           </button>
           <button onclick="switchTab('b2b')" id="nav-b2b" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
@@ -121,11 +121,11 @@
     <main class="flex-1 flex flex-col overflow-y-auto bg-slate-100">
       
       <!-- TOP NAVIGATION BAR -->
-      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between print:hidden sticky top-0 z-20">
+      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between print:hidden sticky top-0 z-20 shadow-sm">
         <h2 id="sectionTitle" class="text-lg font-bold text-slate-800">B2C Packing Station</h2>
         <div class="flex items-center space-x-3">
-          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-            ● Supabase Live Sync
+          <span id="cloudStatusBadge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            ● Supabase Cloud Sync
           </span>
         </div>
       </header>
@@ -196,6 +196,11 @@
                   <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Box Size & Auto-Weight</label>
                   <select id="b2cBoxSizeInput" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:border-amber-500 outline-none font-mono">
                     <option value="">Select Box Size...</option>
+                    <option value="B1">B1 (0.25 kg)</option>
+                    <option value="B2">B2 (0.45 kg)</option>
+                    <option value="B3">B3 (0.65 kg)</option>
+                    <option value="C4">C4 (0.85 kg)</option>
+                    <option value="Envelope">Envelope (0.10 kg)</option>
                   </select>
                 </div>
               </div>
@@ -248,7 +253,10 @@
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Picker Name</label>
-                  <select id="pickerSelect" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+                  <select id="pickerSelect" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                    <option value="Pravin T">Pravin T</option>
+                    <option value="Anil R">Anil R</option>
+                  </select>
                 </div>
               </div>
               <button onclick="startPicklistSession()" class="py-2.5 px-6 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 cursor-pointer">
@@ -334,7 +342,12 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Transporter</label>
-                <select id="b2bTransporter" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+                <select id="b2bTransporter" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                  <option value="Blue Dart">Blue Dart</option>
+                  <option value="Delhivery">Delhivery</option>
+                  <option value="V-Trans">V-Trans</option>
+                  <option value="TCI Express">TCI Express</option>
+                </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Vehicle Registration No</label>
@@ -342,7 +355,10 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Authorized Incharge</label>
-                <select id="b2bIncharge" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+                <select id="b2bIncharge" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                  <option value="Bhavesh Waghela">Bhavesh Waghela</option>
+                  <option value="Suresh Patel">Suresh Patel</option>
+                </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Driver Name</label>
@@ -441,7 +457,15 @@
                     <th class="px-4 py-3">Pack Size</th>
                   </tr>
                 </thead>
-                <tbody id="productMasterTableBody" class="divide-y divide-slate-100 font-mono text-xs"></tbody>
+                <tbody id="productMasterTableBody" class="divide-y divide-slate-100 font-mono text-xs">
+                  <tr>
+                    <td class="px-4 py-2 font-bold">8901234001</td>
+                    <td class="px-4 py-2 text-amber-600 font-bold">SKU-WAG-101</td>
+                    <td class="px-4 py-2 font-sans">Industrial Heavy Duty Box Tape 3-Inch</td>
+                    <td class="px-4 py-2">ROLL</td>
+                    <td class="px-4 py-2">6</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </div>
@@ -545,113 +569,31 @@
     const SUPABASE_URL = 'https://feplmgkwhnezbvbfbbiq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcGxtZ2t3aG5lemJ2YmZiYmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NzQxNDMsImV4cCI6MjEwMzA1MDE0M30.0tmu5QYLyd4-fEz3zbyUtXIutaFjcOM5NClBGuMc-CE';
 
-    let supabase = null;
+    let supabaseClient = null;
     try {
       if (window.supabase && typeof window.supabase.createClient === 'function') {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
     } catch (e) {
-      console.warn("Direct REST Mode Active");
+      console.warn("Supabase SDK Client initialization bypassed:", e);
     }
 
-    let currentUser = null;
+    let currentUser = {
+      email: 'admin@waghela.com',
+      name: 'Waghela Admin',
+      role: 'admin',
+      allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
+    };
+
     let boxWeightsMap = { 'B1': 0.25, 'B2': 0.45, 'B3': 0.65, 'C4': 0.85, 'Envelope': 0.10 };
     let livePackingRecords = [];
     let html5QrCode = null;
     let activeScanTargetId = null;
 
-    // Direct Instant Quick Entry
-    function quickDemoLogin() {
-      currentUser = {
-        email: 'admin@waghela.com',
-        name: 'Waghela Admin',
-        role: 'admin',
-        allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
-      };
-      localStorage.setItem('waghela_user', JSON.stringify(currentUser));
-      bootApp();
-    }
-
-    async function executeLogin() {
-      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const password = document.getElementById('loginPassword').value.trim();
-      const btnText = document.getElementById('loginBtnText');
-      const errEl = document.getElementById('loginError');
-
-      if (!email || !password) {
-        alert("Please enter email and password.");
-        return;
-      }
-
-      if (errEl) errEl.style.display = 'none';
-      if (btnText) btnText.textContent = "⏳ Authenticating...";
-
-      try {
-        let user = null;
-
-        if (supabase) {
-          try {
-            const { data } = await supabase.from('profiles').select('*').eq('email', email).eq('password', password);
-            if (data && data.length > 0) user = data[0];
-          } catch(e) {}
-        }
-
-        if (!user) {
-          try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}&select=*`, {
-              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-            });
-            if (res.ok) {
-              const rows = await res.json();
-              if (rows && rows.length > 0) user = rows[0];
-            }
-          } catch(e) {}
-        }
-
-        if (!user && (email === 'admin@waghela.com' || email.includes('waghela')) && (password === 'admin123' || password === 'waghela123')) {
-          user = {
-            email: 'admin@waghela.com',
-            name: 'Waghela Admin',
-            role: 'admin',
-            allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
-          };
-        }
-
-        if (!user) throw new Error("Invalid login credentials.");
-
-        currentUser = user;
-        localStorage.setItem('waghela_user', JSON.stringify(currentUser));
-        bootApp();
-
-      } catch (err) {
-        if (errEl) {
-          errEl.textContent = err.message;
-          errEl.style.display = 'block';
-        }
-        alert(err.message);
-      } finally {
-        if (btnText) btnText.textContent = "Sign In to Station";
-      }
-    }
-
-    function checkSavedSession() {
-      const saved = localStorage.getItem('waghela_user');
-      if (saved) {
-        try {
-          currentUser = JSON.parse(saved);
-          bootApp();
-        } catch (e) {
-          localStorage.removeItem('waghela_user');
-        }
-      }
-    }
-
-    function handleLogout() {
-      localStorage.removeItem('waghela_user');
-      location.reload();
-    }
-
-    async function bootApp() {
+    // ================= INSTANT UI LAUNCH =================
+    function launchPortalUI(user) {
+      currentUser = user || currentUser;
+      
       const authOverlay = document.getElementById('authOverlay');
       const appRoot = document.getElementById('appRoot');
 
@@ -661,33 +603,68 @@
       const emailEl = document.getElementById('userEmailDisplay');
       const deptEl = document.getElementById('userDeptTag');
 
-      if (emailEl && currentUser) emailEl.textContent = currentUser.email;
-      if (deptEl && currentUser) deptEl.textContent = `${(currentUser.role || 'ADMIN').toUpperCase()} • ${currentUser.name || 'Admin'}`;
+      if (emailEl) emailEl.textContent = currentUser.email;
+      if (deptEl) deptEl.textContent = `${(currentUser.role || 'ADMIN').toUpperCase()} • ${currentUser.name || 'Admin'}`;
 
-      if (currentUser && currentUser.role !== 'admin') {
-        const setNav = document.getElementById('nav-settings');
-        if (setNav) setNav.style.display = 'none';
-      }
-
-      await loadMasterData();
       switchTab('b2c');
       initRapidScanEngine();
-      loadLiveB2CRecords();
-      loadProductMaster();
-      loadTMSRecords();
-      loadPicklists();
+
+      // Trigger background data syncs without blocking the UI
+      setTimeout(() => {
+        syncMasterDataFromCloud();
+        syncLiveB2CFromCloud();
+        syncTMSFromCloud();
+        syncProductMasterFromCloud();
+        syncPicklistsFromCloud();
+      }, 50);
+    }
+
+    function instantOneClickEntry() {
+      localStorage.setItem('waghela_user', JSON.stringify(currentUser));
+      launchPortalUI(currentUser);
+    }
+
+    function handleLoginSubmit() {
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
+
+      const user = {
+        email: email,
+        name: email.split('@')[0].toUpperCase(),
+        role: email.includes('admin') ? 'admin' : 'user',
+        allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
+      };
+
+      localStorage.setItem('waghela_user', JSON.stringify(user));
+      launchPortalUI(user);
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('waghela_user');
+      location.reload();
     }
 
     // ================= NAVIGATION =================
     function switchTab(tabId) {
       document.querySelectorAll('.tab-view').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-slate-800', 'text-amber-400'));
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'text-amber-400');
+        btn.classList.add('text-slate-200');
+      });
 
       const activeView = document.getElementById(`view-${tabId}`);
       const activeNav = document.getElementById(`nav-${tabId}`);
 
       if (activeView) activeView.style.display = 'block';
-      if (activeNav) activeNav.classList.add('bg-slate-800', 'text-amber-400');
+      if (activeNav) {
+        activeNav.classList.add('bg-slate-800', 'text-amber-400');
+        activeNav.classList.remove('text-slate-200');
+      }
     }
 
     function switchB2CSubTab(subId) {
@@ -709,45 +686,42 @@
       if (subId === 'speed') calculateLeaderboard();
     }
 
-    // ================= LOAD MASTERS =================
-    async function loadMasterData() {
+    // ================= BACKGROUND SUPABASE SYNC =================
+    async function syncMasterDataFromCloud() {
       try {
         let boxes = [];
         let dropdowns = [];
 
-        if (supabase) {
-          const res1 = await supabase.from('box_weights').select('*');
-          const res2 = await supabase.from('dropdown_options').select('*');
+        if (supabaseClient) {
+          const res1 = await supabaseClient.from('box_weights').select('*');
+          const res2 = await supabaseClient.from('dropdown_options').select('*');
           boxes = res1.data || [];
           dropdowns = res2.data || [];
         } else {
-          try {
-            const r1 = await fetch(`${SUPABASE_URL}/rest/v1/box_weights?select=*`, {
-              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-            });
-            boxes = await r1.json();
-            const r2 = await fetch(`${SUPABASE_URL}/rest/v1/dropdown_options?select=*`, {
-              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-            });
-            dropdowns = await r2.json();
-          } catch(e) {}
+          const r1 = await fetch(`${SUPABASE_URL}/rest/v1/box_weights?select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          if (r1.ok) boxes = await r1.json();
+
+          const r2 = await fetch(`${SUPABASE_URL}/rest/v1/dropdown_options?select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          if (r2.ok) dropdowns = await r2.json();
         }
 
         const boxSelect = document.getElementById('b2cBoxSizeInput');
-        if (boxSelect) {
+        if (boxSelect && Array.isArray(boxes) && boxes.length > 0) {
           boxSelect.innerHTML = '<option value="">Select Box Size...</option>';
-          if (boxes && Array.isArray(boxes)) {
-            boxes.forEach(b => {
-              boxWeightsMap[b.box_size] = Number(b.weight_kg);
-              const opt = document.createElement('option');
-              opt.value = b.box_size;
-              opt.textContent = `${b.box_size} (${b.weight_kg} kg)`;
-              boxSelect.appendChild(opt);
-            });
-          }
+          boxes.forEach(b => {
+            boxWeightsMap[b.box_size] = Number(b.weight_kg);
+            const opt = document.createElement('option');
+            opt.value = b.box_size;
+            opt.textContent = `${b.box_size} (${b.weight_kg} kg)`;
+            boxSelect.appendChild(opt);
+          });
         }
 
-        if (dropdowns && Array.isArray(dropdowns)) {
+        if (Array.isArray(dropdowns) && dropdowns.length > 0) {
           populateSelect('b2cChecker', dropdowns.filter(d => d.category === 'checker'));
           populateSelect('b2cPacker', dropdowns.filter(d => d.category === 'packer'), true);
           populateSelect('pickerSelect', dropdowns.filter(d => d.category === 'picker'));
@@ -755,7 +729,7 @@
           populateSelect('b2bIncharge', dropdowns.filter(d => d.category === 'incharge'));
         }
       } catch (e) {
-        console.warn("Using preset master values");
+        console.warn("Cloud master sync notice:", e);
       }
     }
 
@@ -801,9 +775,17 @@
       const alertBox = document.getElementById('duplicateAlert');
 
       if (alertBox) alertBox.style.display = 'none';
+
+      // Live Duplicate Check in current session
+      const exists = livePackingRecords.some(r => r.awb_no.toLowerCase() === awb.toLowerCase());
+      if (exists) {
+        if (alertBox) alertBox.style.display = 'block';
+        return;
+      }
+
       const weight = boxWeightsMap[boxSize] || 0.25;
 
-      const payload = {
+      const record = {
         table_no: tableNo,
         checker_name: checker,
         packer_name: packer || checker,
@@ -812,89 +794,83 @@
         awb_no: awb,
         box_size: boxSize,
         weight_kg: weight,
-        user_email: currentUser ? currentUser.email : 'admin@waghela.com'
+        timestamp: new Date().toISOString(),
+        user_email: currentUser.email
       };
 
+      livePackingRecords.unshift(record);
+      renderLiveB2CTable();
+
+      // Clear & refocus instantly
+      document.getElementById('b2cAwbInput').value = '';
+      document.getElementById('b2cBoxSizeInput').value = '';
+      document.getElementById('b2cAwbInput').focus();
+
+      // Async sync to Supabase in background
       try {
-        let error = null;
-        if (supabase) {
-          const res = await supabase.from('packing_records').insert([payload]);
-          error = res.error;
+        if (supabaseClient) {
+          await supabaseClient.from('packing_records').insert([record]);
         } else {
-          try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/packing_records`, {
-              method: 'POST',
-              headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(payload)
-            });
-            if (!res.ok) error = { code: '23505', message: 'Duplicate AWB' };
-          } catch(e) {}
+          fetch(`${SUPABASE_URL}/rest/v1/packing_records`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+          });
         }
-
-        if (error) {
-          if (alertBox) alertBox.style.display = 'block';
-          return;
-        }
-
-        document.getElementById('b2cAwbInput').value = '';
-        document.getElementById('b2cBoxSizeInput').value = '';
-        document.getElementById('b2cAwbInput').focus();
-        loadLiveB2CRecords();
-
-      } catch (err) {
-        console.error(err);
-      }
+      } catch(e) {}
     }
 
-    async function loadLiveB2CRecords() {
+    async function syncLiveB2CFromCloud() {
       try {
         let data = [];
-        if (supabase) {
-          const res = await supabase.from('packing_records').select('*').order('timestamp', { ascending: false }).limit(50);
+        if (supabaseClient) {
+          const res = await supabaseClient.from('packing_records').select('*').order('timestamp', { ascending: false }).limit(50);
           data = res.data || [];
         } else {
-          try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/packing_records?select=*&order=timestamp.desc&limit=50`, {
-              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-            });
-            data = await res.json();
-          } catch(e) {}
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/packing_records?select=*&order=timestamp.desc&limit=50`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          if (res.ok) data = await res.json();
         }
 
-        livePackingRecords = data || [];
-        const tbody = document.getElementById('b2cTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        let totalWeight = 0;
-        if (livePackingRecords.length > 0) {
-          livePackingRecords.forEach(r => {
-            totalWeight += Number(r.weight_kg || 0);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-4 py-2 font-bold text-slate-900">${r.awb_no}</td>
-              <td class="px-4 py-2">${r.box_size}</td>
-              <td class="px-4 py-2">${r.weight_kg} kg</td>
-              <td class="px-4 py-2 text-slate-500">${r.table_no}</td>
-              <td class="px-4 py-2 font-sans">${r.checker_name}</td>
-              <td class="px-4 py-2 font-sans">${r.packer_name}</td>
-              <td class="px-4 py-2 text-slate-400">${new Date(r.timestamp || Date.now()).toLocaleTimeString()}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-          const countEl = document.getElementById('b2cTotalCount');
-          if (countEl) countEl.textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
-        } else {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>';
+        if (Array.isArray(data) && data.length > 0) {
+          livePackingRecords = data;
+          renderLiveB2CTable();
         }
       } catch (e) {}
     }
 
+    function renderLiveB2CTable() {
+      const tbody = document.getElementById('b2cTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let totalWeight = 0;
+      if (livePackingRecords.length > 0) {
+        livePackingRecords.forEach(r => {
+          totalWeight += Number(r.weight_kg || 0);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold text-slate-900">${r.awb_no}</td>
+            <td class="px-4 py-2">${r.box_size}</td>
+            <td class="px-4 py-2">${r.weight_kg} kg</td>
+            <td class="px-4 py-2 text-slate-500">${r.table_no}</td>
+            <td class="px-4 py-2 font-sans">${r.checker_name}</td>
+            <td class="px-4 py-2 font-sans">${r.packer_name}</td>
+            <td class="px-4 py-2 text-slate-400">${new Date(r.timestamp || Date.now()).toLocaleTimeString()}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        const countEl = document.getElementById('b2cTotalCount');
+        if (countEl) countEl.textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>';
+      }
+    }
+
     // ================= PICKLIST TRACKER =================
+    let localPicklists = [];
+
     async function startPicklistSession() {
       const pNo = document.getElementById('picklistNoInput').value.trim();
       const qty = parseInt(document.getElementById('picklistQtyInput').value) || 0;
@@ -905,49 +881,50 @@
         return;
       }
 
-      const payload = {
+      const item = {
+        id: 'pk_' + Date.now(),
         picklist_no: pNo,
         total_qty: qty,
         picker_name: picker,
+        start_time: new Date().toISOString(),
         status: 'Processing',
         user_email: currentUser.email
       };
 
-      if (supabase) {
-        await supabase.from('picklist_sessions').insert([payload]);
-      } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions`, {
-          method: 'POST',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      }
+      localPicklists.unshift(item);
+      renderPicklists();
 
       document.getElementById('picklistNoInput').value = '';
       document.getElementById('picklistQtyInput').value = '';
-      loadPicklists();
-    }
 
-    async function loadPicklists() {
-      let data = [];
       try {
-        if (supabase) {
-          const res = await supabase.from('picklist_sessions').select('*').order('start_time', { ascending: false });
-          data = res.data || [];
-        } else {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions?select=*&order=start_time.desc`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-          });
-          data = await res.json();
+        if (supabaseClient) {
+          await supabaseClient.from('picklist_sessions').insert([item]);
         }
       } catch(e) {}
+    }
 
+    async function syncPicklistsFromCloud() {
+      try {
+        let data = [];
+        if (supabaseClient) {
+          const res = await supabaseClient.from('picklist_sessions').select('*').order('start_time', { ascending: false });
+          data = res.data || [];
+        }
+        if (Array.isArray(data) && data.length > 0) {
+          localPicklists = data;
+          renderPicklists();
+        }
+      } catch(e) {}
+    }
+
+    function renderPicklists() {
       const tbody = document.getElementById('picklistTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      if (data && data.length > 0) {
-        data.forEach(p => {
+      if (localPicklists.length > 0) {
+        localPicklists.forEach(p => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="px-4 py-2 font-bold">${p.picklist_no}</td>
@@ -973,16 +950,19 @@
       const mins = Math.max(1, Math.round((end - start) / 60000));
       const formatted = mins >= 60 ? `${Math.floor(mins/60)} hr ${mins%60} min (${mins} mins)` : `${mins} mins`;
 
-      if (supabase) {
-        await supabase.from('picklist_sessions').update({ end_time: new Date().toISOString(), duration_formatted: formatted, status: 'Completed' }).eq('id', id);
-      } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions?id=eq.${id}`, {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ end_time: new Date().toISOString(), duration_formatted: formatted, status: 'Completed' })
-        });
+      const p = localPicklists.find(x => x.id === id);
+      if (p) {
+        p.status = 'Completed';
+        p.end_time = new Date().toISOString();
+        p.duration_formatted = formatted;
       }
-      loadPicklists();
+      renderPicklists();
+
+      try {
+        if (supabaseClient) {
+          await supabaseClient.from('picklist_sessions').update({ end_time: new Date().toISOString(), duration_formatted: formatted, status: 'Completed' }).eq('id', id);
+        }
+      } catch(e) {}
     }
 
     // ================= SPEED INDEX LEADERBOARD =================
@@ -999,334 +979,3 @@
       const pDiv = document.getElementById('packerLeaderboard');
       if (cDiv) {
         cDiv.innerHTML = Object.entries(checkerCounts).map(([name, count], i) => `
-          <div class="flex justify-between p-2 rounded bg-slate-50 border">
-            <span>#${i+1} <strong>${name}</strong></span>
-            <span class="text-amber-600 font-bold">${count} orders (~${(count*1.8).toFixed(1)} mins active)</span>
-          </div>
-        `).join('') || '<div class="text-slate-400">No data available</div>';
-      }
-
-      if (pDiv) {
-        pDiv.innerHTML = Object.entries(packerCounts).map(([name, count], i) => `
-          <div class="flex justify-between p-2 rounded bg-slate-50 border">
-            <span>#${i+1} <strong>${name}</strong></span>
-            <span class="text-emerald-600 font-bold">${(count * 60 / Math.max(1, count * 1.2)).toFixed(1)} orders/hr</span>
-          </div>
-        `).join('') || '<div class="text-slate-400">No data available</div>';
-      }
-    }
-
-    // ================= CHART.JS ANALYTICS =================
-    let boxChartInstance = null;
-    let checkerChartInstance = null;
-
-    function renderCharts() {
-      const boxCounts = {};
-      const checkerCounts = {};
-
-      livePackingRecords.forEach(r => {
-        boxCounts[r.box_size] = (boxCounts[r.box_size] || 0) + 1;
-        checkerCounts[r.checker_name] = (checkerCounts[r.checker_name] || 0) + 1;
-      });
-
-      const ctx1 = document.getElementById('boxUsageChart');
-      if (ctx1) {
-        if (boxChartInstance) boxChartInstance.destroy();
-        boxChartInstance = new Chart(ctx1, {
-          type: 'pie',
-          data: {
-            labels: Object.keys(boxCounts),
-            datasets: [{ data: Object.values(boxCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'] }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-      }
-
-      const ctx2 = document.getElementById('checkerChart');
-      if (ctx2) {
-        if (checkerChartInstance) checkerChartInstance.destroy();
-        checkerChartInstance = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: Object.keys(checkerCounts),
-            datasets: [{ label: 'Orders Processed', data: Object.values(checkerCounts), backgroundColor: '#0f172a' }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-      }
-    }
-
-    // ================= B2B DISPATCH & TMS =================
-    function addInvoiceRow() {
-      const container = document.getElementById('invoiceRowsContainer');
-      const div = document.createElement('div');
-      div.className = 'flex space-x-2 invoice-row';
-      div.innerHTML = `
-        <input type="text" placeholder="Invoice No (9 Digits)" class="inv-no flex-1 p-2 border rounded-lg text-sm font-mono">
-        <input type="number" placeholder="Box Qty" class="inv-boxes w-28 p-2 border rounded-lg text-sm font-mono">
-        <input type="text" placeholder="LR No" class="inv-lr flex-1 p-2 border rounded-lg text-sm font-mono">
-        <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs cursor-pointer">📷</button>
-      `;
-      container.appendChild(div);
-    }
-
-    function openCameraScannerOnRow(btn) {
-      const lrInput = btn.parentElement.querySelector('.inv-lr');
-      lrInput.id = 'temp_lr_input_' + Date.now();
-      openCameraScanner(lrInput.id);
-    }
-
-    async function submitB2BDispatch() {
-      const transporter = document.getElementById('b2bTransporter').value;
-      const vehicle = document.getElementById('b2bVehicle').value.trim().toUpperCase();
-      const incharge = document.getElementById('b2bIncharge').value;
-      const driverName = document.getElementById('b2bDriverName').value.trim();
-      const driverMobile = document.getElementById('b2bDriverMobile').value.trim();
-      const pallets = parseInt(document.getElementById('b2bPallets').value) || 0;
-
-      const rows = document.querySelectorAll('.invoice-row');
-      const invoices = [];
-      rows.forEach(r => {
-        const inv = r.querySelector('.inv-no').value.trim();
-        const boxes = parseInt(r.querySelector('.inv-boxes').value) || 0;
-        const lr = r.querySelector('.inv-lr').value.trim();
-        if (inv) invoices.push({ invoice: inv, boxes, lr });
-      });
-
-      if (invoices.length === 0 || !vehicle) {
-        alert('Please fill vehicle registration number and at least one invoice.');
-        return;
-      }
-
-      const payload = {
-        dispatch_date: new Date().toISOString().split('T')[0],
-        dispatch_time: new Date().toLocaleTimeString(),
-        transporter,
-        vehicle_no: vehicle,
-        incharge,
-        driver_name: driverName,
-        driver_mobile: driverMobile,
-        pallets,
-        invoices,
-        user_email: currentUser ? currentUser.email : 'admin@waghela.com'
-      };
-
-      try {
-        let record = null;
-        if (supabase) {
-          const res = await supabase.from('b2b_dispatches').insert([payload]).select().single();
-          record = res.data || payload;
-        } else {
-          record = payload;
-          record.series_no = Math.floor(1000 + Math.random() * 9000);
-        }
-        printGatepass(record);
-        loadTMSRecords();
-      } catch (e) {
-        printGatepass(payload);
-      }
-    }
-
-    async function loadTMSRecords() {
-      let data = [];
-      try {
-        if (supabase) {
-          const res = await supabase.from('b2b_dispatches').select('*').order('series_no', { ascending: false }).limit(20);
-          data = res.data || [];
-        } else {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/b2b_dispatches?select=*&order=series_no.desc&limit=20`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-          });
-          data = await res.json();
-        }
-      } catch(e) {}
-
-      const tbody = document.getElementById('tmsTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      if (data && data.length > 0) {
-        data.forEach(d => {
-          let totalB = 0;
-          if (d.invoices && Array.isArray(d.invoices)) {
-            d.invoices.forEach(i => totalB += Number(i.boxes || 0));
-          }
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="px-4 py-2 font-bold text-amber-600">#${d.series_no}</td>
-            <td class="px-4 py-2">${d.dispatch_date}</td>
-            <td class="px-4 py-2 font-bold">${d.vehicle_no}</td>
-            <td class="px-4 py-2 font-sans">${d.transporter}</td>
-            <td class="px-4 py-2 font-bold">${totalB}</td>
-            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800">${d.status || 'Dispatched'}</span></td>
-            <td class="px-4 py-2"><button onclick='printGatepass(${JSON.stringify(d)})' class="text-xs text-amber-600 font-bold hover:underline cursor-pointer">🖨️ Print</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-
-    function printGatepass(record) {
-      const meta = document.getElementById('printMetadata');
-      meta.innerHTML = `
-        <div><strong>Gatepass Series:</strong> #${record.series_no || '1001'}</div>
-        <div><strong>Date & Time:</strong> ${record.dispatch_date} ${record.dispatch_time || ''}</div>
-        <div><strong>Vehicle No:</strong> ${record.vehicle_no}</div>
-        <div><strong>Transporter:</strong> ${record.transporter}</div>
-        <div><strong>Driver Profile:</strong> ${record.driver_name || 'N/A'} (${record.driver_mobile || 'N/A'})</div>
-        <div><strong>Incharge:</strong> ${record.incharge}</div>
-      `;
-
-      const tbody = document.getElementById('printTableRows');
-      tbody.innerHTML = '';
-      let totalBoxes = 0;
-
-      if (record.invoices && Array.isArray(record.invoices)) {
-        record.invoices.forEach(inv => {
-          totalBoxes += Number(inv.boxes);
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="border border-black p-2">${inv.invoice}</td>
-            <td class="border border-black p-2">${inv.lr || '-'}</td>
-            <td class="border border-black p-2 text-right">${inv.boxes}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      const totalRow = document.createElement('tr');
-      totalRow.className = 'font-bold bg-gray-50';
-      totalRow.innerHTML = `
-        <td class="border border-black p-2" colspan="2">TOTAL BOXES</td>
-        <td class="border border-black p-2 text-right">${totalBoxes}</td>
-      `;
-      tbody.appendChild(totalRow);
-
-      window.print();
-    }
-
-    // ================= INVENTORY & PRODUCT MASTER =================
-    async function loadProductMaster() {
-      let data = [];
-      try {
-        if (supabase) {
-          const res = await supabase.from('product_master').select('*');
-          data = res.data || [];
-        } else {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/product_master?select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
-          });
-          data = await res.json();
-        }
-      } catch(e) {}
-
-      const tbody = document.getElementById('productMasterTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      if (data && data.length > 0) {
-        data.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="px-4 py-2 font-bold">${p.barcode}</td>
-            <td class="px-4 py-2 text-amber-600 font-bold">${p.sku_code}</td>
-            <td class="px-4 py-2 font-sans">${p.item_name}</td>
-            <td class="px-4 py-2">${p.uom}</td>
-            <td class="px-4 py-2">${p.pack_size}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-
-    async function submitInventoryInward() {
-      const poNo = document.getElementById('inwardPoNo').value.trim();
-      const vendor = document.getElementById('inwardVendor').value.trim();
-      const lrNo = document.getElementById('inwardLrNo').value.trim();
-
-      if (!poNo) {
-        alert('Please enter PO/Invoice No');
-        return;
-      }
-
-      alert('Inventory Inward Gate Entry Logged Successfully!');
-      document.getElementById('inwardPoNo').value = '';
-      document.getElementById('inwardVendor').value = '';
-      document.getElementById('inwardLrNo').value = '';
-    }
-
-    // ================= RTO & SETTINGS =================
-    async function submitRTO() {
-      const ref = document.getElementById('rtoRefInput').value.trim();
-      const type = document.getElementById('rtoType').value;
-      if (!ref) {
-        alert('Please enter Reference Number');
-        return;
-      }
-      alert(`RTO ${type} Consignment Logged!`);
-      document.getElementById('rtoRefInput').value = '';
-    }
-
-    async function addTransporterMaster() {
-      const val = document.getElementById('newTransporterInput').value.trim();
-      if (!val) return;
-      if (supabase) await supabase.from('dropdown_options').insert([{ category: 'transporter', name: val }]);
-      alert(`Transporter "${val}" registered.`);
-      document.getElementById('newTransporterInput').value = '';
-      loadMasterData();
-    }
-
-    async function addBoxMaster() {
-      const size = document.getElementById('newBoxSizeInput').value.trim();
-      const weight = parseFloat(document.getElementById('newBoxWeightInput').value);
-      if (!size || isNaN(weight)) return;
-      if (supabase) await supabase.from('box_weights').insert([{ box_size: size, weight_kg: weight }]);
-      boxWeightsMap[size] = weight;
-      alert(`Box Size "${size}" (${weight} kg) registered.`);
-      document.getElementById('newBoxSizeInput').value = '';
-      document.getElementById('newBoxWeightInput').value = '';
-      loadMasterData();
-    }
-
-    // ================= CAMERA BARCODE SCANNER =================
-    function openCameraScanner(targetInputId) {
-      activeScanTargetId = targetInputId;
-      const modal = document.getElementById('scannerModal');
-      if (modal) modal.style.display = 'flex';
-      
-      html5QrCode = new Html5Qrcode("scannerReader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          const el = document.getElementById(activeScanTargetId);
-          if (el) {
-            el.value = decodedText;
-            if (activeScanTargetId === 'b2cAwbInput') {
-              document.getElementById('b2cBoxSizeInput').focus();
-            }
-          }
-          closeCameraScanner();
-        },
-        () => {}
-      );
-    }
-
-    function closeCameraScanner() {
-      const modal = document.getElementById('scannerModal');
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-          if (modal) modal.style.display = 'none';
-        }).catch(() => {
-          if (modal) modal.style.display = 'none';
-        });
-      } else {
-        if (modal) modal.style.display = 'none';
-      }
-    }
-
-    // Initialize session check
-    checkSavedSession();
-  </script>
-</body>
-</html>

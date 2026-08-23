@@ -14,23 +14,6 @@
   <!-- HTML5 QR / Barcode Scanner CDN -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              slate: '#1e293b',
-              dark: '#0f172a',
-              amber: '#f59e0b',
-              amberDark: '#d97706'
-            }
-          }
-        }
-      }
-    }
-  </script>
-
   <style>
     @media print {
       body * {
@@ -52,9 +35,9 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased select-none">
+<body class="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased">
 
-  <!-- ================= AUTH MODAL (LOGIN & OTP) ================= -->
+  <!-- ================= AUTH MODAL (LOGIN) ================= -->
   <div id="authOverlay" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl text-white">
       <div class="flex items-center justify-between mb-6">
@@ -88,13 +71,13 @@
           ⚡ Instant One-Click Entry
         </button>
 
-        <p id="loginError" class="text-red-400 text-xs text-center hidden p-2 bg-red-950/50 rounded border border-red-800/50"></p>
+        <p id="loginError" class="text-red-400 text-xs text-center p-2 bg-red-950/50 rounded border border-red-800/50" style="display: none;"></p>
       </div>
     </div>
   </div>
 
   <!-- ================= MAIN APP ROOT ================= -->
-  <div id="appRoot" class="hidden flex h-screen overflow-hidden">
+  <div id="appRoot" class="h-screen overflow-hidden" style="display: none;">
     
     <!-- SIDEBAR -->
     <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between text-slate-300 print:hidden shrink-0">
@@ -108,19 +91,19 @@
         </div>
 
         <nav class="p-3 space-y-1 text-sm font-medium">
-          <button onclick="switchTab('b2c')" id="nav-b2c" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+          <button onclick="switchTab('b2c')" id="nav-b2c" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
             <span>🛍️</span> <span>B2C Packing Tracker</span>
           </button>
-          <button onclick="switchTab('b2b')" id="nav-b2b" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+          <button onclick="switchTab('b2b')" id="nav-b2b" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
             <span>🚚</span> <span>B2B Dispatch & TMS</span>
           </button>
-          <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+          <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
             <span>📦</span> <span>Inventory Inward</span>
           </button>
-          <button onclick="switchTab('rto')" id="nav-rto" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+          <button onclick="switchTab('rto')" id="nav-rto" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
             <span>🔄</span> <span>RTO Operations</span>
           </button>
-          <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+          <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200 cursor-pointer">
             <span>⚙️</span> <span>Settings & Masters</span>
           </button>
         </nav>
@@ -155,10 +138,10 @@
           
           <!-- Sub-Tabs Navigation for B2C -->
           <div class="flex space-x-2 border-b border-slate-300 pb-2">
-            <button onclick="switchB2CSubTab('packing')" id="b2c-subnav-packing" class="px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950">Packing Station</button>
-            <button onclick="switchB2CSubTab('picklist')" id="b2c-subnav-picklist" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">Picklist Sessions</button>
-            <button onclick="switchB2CSubTab('analytics')" id="b2c-subnav-analytics" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">Visual Analytics</button>
-            <button onclick="switchB2CSubTab('speed')" id="b2c-subnav-speed" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">⚡ Speed Index Leaderboard</button>
+            <button onclick="switchB2CSubTab('packing')" id="b2c-subnav-packing" class="px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 cursor-pointer">Packing Station</button>
+            <button onclick="switchB2CSubTab('picklist')" id="b2c-subnav-picklist" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer">Picklist Sessions</button>
+            <button onclick="switchB2CSubTab('analytics')" id="b2c-subnav-analytics" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer">Visual Analytics</button>
+            <button onclick="switchB2CSubTab('speed')" id="b2c-subnav-speed" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer">⚡ Speed Index Leaderboard</button>
           </div>
 
           <!-- B2C SUB-TAB 1: PACKING STATION -->
@@ -218,7 +201,7 @@
               </div>
 
               <!-- Multi-Table Duplicate Blocker Alert -->
-              <div id="duplicateAlert" class="hidden mt-4 p-4 bg-red-950/90 border border-red-500 text-red-200 rounded-xl text-sm font-medium animate-pulse">
+              <div id="duplicateAlert" class="mt-4 p-4 bg-red-950/90 border border-red-500 text-red-200 rounded-xl text-sm font-medium animate-pulse" style="display: none;">
                 🚨 <strong>MULTI-TABLE DUPLICATE AWB DETECTED!</strong> This shipment was already scanned.
               </div>
             </div>
@@ -251,7 +234,7 @@
           </div>
 
           <!-- B2C SUB-TAB 2: PICKLIST TRACKER -->
-          <div id="b2c-view-picklist" class="hidden space-y-6">
+          <div id="b2c-view-picklist" class="space-y-6" style="display: none;">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 class="font-bold text-slate-800 text-base">Start New Picklist Batch Session</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -297,7 +280,7 @@
           </div>
 
           <!-- B2C SUB-TAB 3: VISUAL ANALYTICS -->
-          <div id="b2c-view-analytics" class="hidden space-y-6">
+          <div id="b2c-view-analytics" class="space-y-6" style="display: none;">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h4 class="font-bold text-slate-800 text-sm mb-4">📦 Box Size Usage Distribution</h4>
@@ -315,7 +298,7 @@
           </div>
 
           <!-- B2C SUB-TAB 4: SPEED INDEX LEADERBOARD (15-MIN IDLE ALGORITHM) -->
-          <div id="b2c-view-speed" class="hidden space-y-6">
+          <div id="b2c-view-speed" class="space-y-6" style="display: none;">
             <div class="bg-gradient-to-r from-amber-500 to-amber-600 p-6 rounded-2xl text-slate-950 shadow-md flex justify-between items-center">
               <div>
                 <h3 class="font-black text-lg">⚡ High-Throughput Pace & Speed Leaderboard</h3>
@@ -341,11 +324,11 @@
         </section>
 
         <!-- ================= MODULE 2: B2B DISPATCH & TMS ================= -->
-        <section id="view-b2b" class="tab-view hidden space-y-6">
+        <section id="view-b2b" class="tab-view space-y-6" style="display: none;">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div class="flex justify-between items-center">
               <h3 class="font-bold text-slate-800 text-base">New B2B Gatepass Dispatch Entry</h3>
-              <span class="text-xs font-mono text-slate-500 font-bold">Auto-Series Series: 1001+</span>
+              <span class="text-xs font-mono text-slate-500 font-bold">Auto-Series: 1001+</span>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -383,7 +366,7 @@
                   <input type="text" placeholder="Invoice No (9 Digits)" class="inv-no flex-1 p-2 border rounded-lg text-sm font-mono">
                   <input type="number" placeholder="Box Qty" class="inv-boxes w-28 p-2 border rounded-lg text-sm font-mono">
                   <input type="text" placeholder="LR No" class="inv-lr flex-1 p-2 border rounded-lg text-sm font-mono">
-                  <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs">📷</button>
+                  <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs cursor-pointer">📷</button>
                 </div>
               </div>
               <button onclick="addInvoiceRow()" class="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 cursor-pointer">+ Add Another Invoice Row</button>
@@ -419,7 +402,7 @@
         </section>
 
         <!-- ================= MODULE 3: INVENTORY INWARD ================= -->
-        <section id="view-inventory" class="tab-view hidden space-y-6">
+        <section id="view-inventory" class="tab-view space-y-6" style="display: none;">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 class="font-bold text-slate-800 text-base">Inward PO / Invoice Entry (Series IN-0001+)</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -465,7 +448,7 @@
         </section>
 
         <!-- ================= MODULE 4: RTO OPERATIONS ================= -->
-        <section id="view-rto" class="tab-view hidden space-y-6">
+        <section id="view-rto" class="tab-view space-y-6" style="display: none;">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 class="font-bold text-slate-800 text-base">RTO Return Logging (B2B / B2C)</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -492,7 +475,7 @@
         </section>
 
         <!-- ================= MODULE 6: SETTINGS & ACCESS CONTROL ================= -->
-        <section id="view-settings" class="tab-view hidden space-y-6">
+        <section id="view-settings" class="tab-view space-y-6" style="display: none;">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
             <h3 class="font-bold text-slate-800 text-base border-b pb-3">Master Configurations & Box Weights Desk</h3>
             
@@ -549,8 +532,8 @@
   </div>
 
   <!-- ================= MODULE 8: REUSABLE CAMERA SCANNER MODAL ================= -->
-  <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+  <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 z-50 items-center justify-center p-4 shadow-2xl" style="display: none;">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4">
       <h3 class="font-bold text-slate-800 text-sm">📷 Live Barcode Scanner</h3>
       <div id="scannerReader" class="w-full rounded-xl overflow-hidden bg-black"></div>
       <button onclick="closeCameraScanner()" class="w-full py-2 bg-slate-200 font-bold text-slate-800 rounded-lg text-sm cursor-pointer hover:bg-slate-300">Close Camera</button>
@@ -577,7 +560,7 @@
     let html5QrCode = null;
     let activeScanTargetId = null;
 
-    // Direct Quick Access
+    // Direct Instant Quick Entry
     function quickDemoLogin() {
       currentUser = {
         email: 'admin@waghela.com',
@@ -600,7 +583,7 @@
         return;
       }
 
-      if (errEl) errEl.classList.add('hidden');
+      if (errEl) errEl.style.display = 'none';
       if (btnText) btnText.textContent = "⏳ Authenticating...";
 
       try {
@@ -643,7 +626,7 @@
       } catch (err) {
         if (errEl) {
           errEl.textContent = err.message;
-          errEl.classList.remove('hidden');
+          errEl.style.display = 'block';
         }
         alert(err.message);
       } finally {
@@ -669,14 +652,21 @@
     }
 
     async function bootApp() {
-      document.getElementById('authOverlay').classList.add('hidden');
-      document.getElementById('appRoot').classList.remove('hidden');
-      document.getElementById('userEmailDisplay').textContent = currentUser.email;
-      document.getElementById('userDeptTag').textContent = `${(currentUser.role || 'ADMIN').toUpperCase()} • ${currentUser.name || 'Admin'}`;
+      const authOverlay = document.getElementById('authOverlay');
+      const appRoot = document.getElementById('appRoot');
 
-      if (currentUser.role !== 'admin') {
+      if (authOverlay) authOverlay.style.display = 'none';
+      if (appRoot) appRoot.style.display = 'flex';
+
+      const emailEl = document.getElementById('userEmailDisplay');
+      const deptEl = document.getElementById('userDeptTag');
+
+      if (emailEl && currentUser) emailEl.textContent = currentUser.email;
+      if (deptEl && currentUser) deptEl.textContent = `${(currentUser.role || 'ADMIN').toUpperCase()} • ${currentUser.name || 'Admin'}`;
+
+      if (currentUser && currentUser.role !== 'admin') {
         const setNav = document.getElementById('nav-settings');
-        if (setNav) setNav.classList.add('hidden');
+        if (setNav) setNav.style.display = 'none';
       }
 
       await loadMasterData();
@@ -690,26 +680,28 @@
 
     // ================= NAVIGATION =================
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-view').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-slate-800', 'text-amber-400'));
 
       const activeView = document.getElementById(`view-${tabId}`);
       const activeNav = document.getElementById(`nav-${tabId}`);
 
-      if (activeView) activeView.classList.remove('hidden');
+      if (activeView) activeView.style.display = 'block';
       if (activeNav) activeNav.classList.add('bg-slate-800', 'text-amber-400');
     }
 
     function switchB2CSubTab(subId) {
       ['packing', 'picklist', 'analytics', 'speed'].forEach(id => {
-        document.getElementById(`b2c-view-${id}`).classList.add('hidden');
+        const el = document.getElementById(`b2c-view-${id}`);
+        if (el) el.style.display = 'none';
         const btn = document.getElementById(`b2c-subnav-${id}`);
         if (btn) {
           btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer";
         }
       });
 
-      document.getElementById(`b2c-view-${subId}`).classList.remove('hidden');
+      const activeEl = document.getElementById(`b2c-view-${subId}`);
+      if (activeEl) activeEl.style.display = 'block';
       const activeBtn = document.getElementById(`b2c-subnav-${subId}`);
       if (activeBtn) activeBtn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 cursor-pointer";
 
@@ -742,15 +734,17 @@
         }
 
         const boxSelect = document.getElementById('b2cBoxSizeInput');
-        boxSelect.innerHTML = '<option value="">Select Box Size...</option>';
-        if (boxes && Array.isArray(boxes)) {
-          boxes.forEach(b => {
-            boxWeightsMap[b.box_size] = Number(b.weight_kg);
-            const opt = document.createElement('option');
-            opt.value = b.box_size;
-            opt.textContent = `${b.box_size} (${b.weight_kg} kg)`;
-            boxSelect.appendChild(opt);
-          });
+        if (boxSelect) {
+          boxSelect.innerHTML = '<option value="">Select Box Size...</option>';
+          if (boxes && Array.isArray(boxes)) {
+            boxes.forEach(b => {
+              boxWeightsMap[b.box_size] = Number(b.weight_kg);
+              const opt = document.createElement('option');
+              opt.value = b.box_size;
+              opt.textContent = `${b.box_size} (${b.weight_kg} kg)`;
+              boxSelect.appendChild(opt);
+            });
+          }
         }
 
         if (dropdowns && Array.isArray(dropdowns)) {
@@ -806,7 +800,7 @@
       const picklist = document.getElementById('b2cPicklistRef').value.trim();
       const alertBox = document.getElementById('duplicateAlert');
 
-      if (alertBox) alertBox.classList.add('hidden');
+      if (alertBox) alertBox.style.display = 'none';
       const weight = boxWeightsMap[boxSize] || 0.25;
 
       const payload = {
@@ -842,7 +836,7 @@
         }
 
         if (error) {
-          if (alertBox) alertBox.classList.remove('hidden');
+          if (alertBox) alertBox.style.display = 'block';
           return;
         }
 
@@ -892,7 +886,8 @@
             `;
             tbody.appendChild(tr);
           });
-          document.getElementById('b2cTotalCount').textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
+          const countEl = document.getElementById('b2cTotalCount');
+          if (countEl) countEl.textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
         } else {
           tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>';
         }
@@ -1070,7 +1065,7 @@
         <input type="text" placeholder="Invoice No (9 Digits)" class="inv-no flex-1 p-2 border rounded-lg text-sm font-mono">
         <input type="number" placeholder="Box Qty" class="inv-boxes w-28 p-2 border rounded-lg text-sm font-mono">
         <input type="text" placeholder="LR No" class="inv-lr flex-1 p-2 border rounded-lg text-sm font-mono">
-        <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs">📷</button>
+        <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs cursor-pointer">📷</button>
       `;
       container.appendChild(div);
     }
@@ -1295,7 +1290,9 @@
     // ================= CAMERA BARCODE SCANNER =================
     function openCameraScanner(targetInputId) {
       activeScanTargetId = targetInputId;
-      document.getElementById('scannerModal').classList.remove('hidden');
+      const modal = document.getElementById('scannerModal');
+      if (modal) modal.style.display = 'flex';
+      
       html5QrCode = new Html5Qrcode("scannerReader");
       html5QrCode.start(
         { facingMode: "environment" },
@@ -1315,19 +1312,20 @@
     }
 
     function closeCameraScanner() {
+      const modal = document.getElementById('scannerModal');
       if (html5QrCode) {
         html5QrCode.stop().then(() => {
           html5QrCode.clear();
-          document.getElementById('scannerModal').classList.add('hidden');
+          if (modal) modal.style.display = 'none';
         }).catch(() => {
-          document.getElementById('scannerModal').classList.add('hidden');
+          if (modal) modal.style.display = 'none';
         });
       } else {
-        document.getElementById('scannerModal').classList.add('hidden');
+        if (modal) modal.style.display = 'none';
       }
     }
 
-    // Initialize session
+    // Initialize session check
     checkSavedSession();
   </script>
 </body>

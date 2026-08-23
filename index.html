@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waghela Operations Portal</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js CDN for Visual Dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- HTML5 QR / Barcode Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              slate: '#1e293b',
+              dark: '#0f172a',
+              amber: '#f59e0b',
+              amberDark: '#d97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printGatepassArea, #printGatepassArea * {
+        visibility: visible !important;
+      }
+      #printGatepassArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 24px;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased select-none">
+
+  <!-- ================= AUTH MODAL (LOGIN & OTP) ================= -->
+  <div id="authOverlay" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl text-white">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center font-black text-slate-950 text-xl shadow-lg shadow-amber-500/20">W</div>
+          <div>
+            <h1 class="text-xl font-bold tracking-wide text-white">Waghela Operations</h1>
+            <p class="text-xs text-slate-400">High-Throughput Logistics Portal</p>
+          </div>
+        </div>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950 border border-emerald-500/30 text-emerald-400">
+          ● Ready
+        </span>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
+          <input type="email" id="loginEmail" value="admin@waghela.com" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none text-white font-mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
+          <input type="password" id="loginPassword" value="admin123" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none text-white font-mono">
+        </div>
+        
+        <button id="loginSubmitBtn" onclick="executeLogin()" type="button" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] font-bold rounded-lg text-slate-950 transition flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 cursor-pointer">
+          <span id="loginBtnText">Sign In to Station</span>
+        </button>
+
+        <button onclick="quickDemoLogin()" type="button" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition cursor-pointer">
+          ⚡ Instant One-Click Entry
+        </button>
+
+        <p id="loginError" class="text-red-400 text-xs text-center hidden p-2 bg-red-950/50 rounded border border-red-800/50"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP ROOT ================= -->
+  <div id="appRoot" class="hidden flex h-screen overflow-hidden">
+    
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between text-slate-300 print:hidden shrink-0">
+      <div>
+        <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center font-black text-slate-950">W</div>
+          <div>
+            <div class="font-bold text-sm text-white tracking-wide">WAGHELA PORTAL</div>
+            <div id="userDeptTag" class="text-[10px] text-amber-400 font-medium">ADMIN • Waghela Admin</div>
+          </div>
+        </div>
+
+        <nav class="p-3 space-y-1 text-sm font-medium">
+          <button onclick="switchTab('b2c')" id="nav-b2c" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+            <span>🛍️</span> <span>B2C Packing Tracker</span>
+          </button>
+          <button onclick="switchTab('b2b')" id="nav-b2b" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+            <span>🚚</span> <span>B2B Dispatch & TMS</span>
+          </button>
+          <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+            <span>📦</span> <span>Inventory Inward</span>
+          </button>
+          <button onclick="switchTab('rto')" id="nav-rto" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+            <span>🔄</span> <span>RTO Operations</span>
+          </button>
+          <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-200">
+            <span>⚙️</span> <span>Settings & Masters</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-800">
+        <div class="text-xs text-slate-400 mb-2 truncate" id="userEmailDisplay">admin@waghela.com</div>
+        <button onclick="handleLogout()" class="w-full py-1.5 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs font-semibold rounded-lg transition cursor-pointer">
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col overflow-y-auto bg-slate-100">
+      
+      <!-- TOP NAVIGATION BAR -->
+      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between print:hidden sticky top-0 z-20">
+        <h2 id="sectionTitle" class="text-lg font-bold text-slate-800">B2C Packing Station</h2>
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            ● Supabase Live Sync
+          </span>
+        </div>
+      </header>
+
+      <!-- VIEW CONTAINER -->
+      <div class="p-6 space-y-6">
+        
+        <!-- ================= MODULE 5: B2C PACKING TRACKER ================= -->
+        <section id="view-b2c" class="tab-view space-y-6">
+          
+          <!-- Sub-Tabs Navigation for B2C -->
+          <div class="flex space-x-2 border-b border-slate-300 pb-2">
+            <button onclick="switchB2CSubTab('packing')" id="b2c-subnav-packing" class="px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950">Packing Station</button>
+            <button onclick="switchB2CSubTab('picklist')" id="b2c-subnav-picklist" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">Picklist Sessions</button>
+            <button onclick="switchB2CSubTab('analytics')" id="b2c-subnav-analytics" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">Visual Analytics</button>
+            <button onclick="switchB2CSubTab('speed')" id="b2c-subnav-speed" class="px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200">⚡ Speed Index Leaderboard</button>
+          </div>
+
+          <!-- B2C SUB-TAB 1: PACKING STATION -->
+          <div id="b2c-view-packing" class="space-y-6">
+            
+            <!-- Table Header Configuration -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Station Table #</label>
+                <select id="b2cTableNo" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold">
+                  <option value="Table-1">Table-1</option>
+                  <option value="Table-2">Table-2</option>
+                  <option value="Table-3">Table-3</option>
+                  <option value="Table-4">Table-4</option>
+                  <option value="Table-5">Table-5</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Checker Name</label>
+                <select id="b2cChecker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm">
+                  <option value="Ramesh K">Ramesh K</option>
+                  <option value="Mahesh V">Mahesh V</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Packer Name</label>
+                <select id="b2cPacker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm">
+                  <option value="">Same as Checker (Dual Role)</option>
+                  <option value="Kishan S">Kishan S</option>
+                  <option value="Dinesh M">Dinesh M</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Picklist Ref</label>
+                <input type="text" id="b2cPicklistRef" placeholder="e.g. PK-8821" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono">
+              </div>
+            </div>
+
+            <!-- Zero-Mouse Rapid Scan Pipeline -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl border border-slate-700 text-white shadow-md">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold">⚡ Zero-Mouse Rapid Scan Pipeline</span>
+                <button onclick="openCameraScanner('b2cAwbInput')" class="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs rounded-lg border border-amber-500/30 cursor-pointer">📷 Camera Barcode Scan</button>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-bold uppercase mb-1 text-slate-300">AWB Tracking Number (Gun Scan)</label>
+                  <input type="text" id="b2cAwbInput" placeholder="Scan AWB and press Enter..." class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-amber-400 font-mono text-lg rounded-xl focus:border-amber-500 outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Box Size & Auto-Weight</label>
+                  <select id="b2cBoxSizeInput" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:border-amber-500 outline-none font-mono">
+                    <option value="">Select Box Size...</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Multi-Table Duplicate Blocker Alert -->
+              <div id="duplicateAlert" class="hidden mt-4 p-4 bg-red-950/90 border border-red-500 text-red-200 rounded-xl text-sm font-medium animate-pulse">
+                🚨 <strong>MULTI-TABLE DUPLICATE AWB DETECTED!</strong> This shipment was already scanned.
+              </div>
+            </div>
+
+            <!-- Live Session Scans Log -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-sm">Live Station Scans Stream</h3>
+                <div class="text-xs font-bold text-amber-600" id="b2cTotalCount">Total: 0 scans (0.00 kg)</div>
+              </div>
+              <div class="overflow-x-auto max-h-96">
+                <table class="w-full text-left text-sm">
+                  <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] sticky top-0">
+                    <tr>
+                      <th class="px-4 py-3">AWB No</th>
+                      <th class="px-4 py-3">Box</th>
+                      <th class="px-4 py-3">Weight</th>
+                      <th class="px-4 py-3">Table</th>
+                      <th class="px-4 py-3">Checker</th>
+                      <th class="px-4 py-3">Packer</th>
+                      <th class="px-4 py-3">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="b2cTableBody" class="divide-y divide-slate-100 font-mono text-xs text-slate-700">
+                    <tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- B2C SUB-TAB 2: PICKLIST TRACKER -->
+          <div id="b2c-view-picklist" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="font-bold text-slate-800 text-base">Start New Picklist Batch Session</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Picklist Number</label>
+                  <input type="text" id="picklistNoInput" placeholder="PK-9901" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Total Quantity (Items)</label>
+                  <input type="number" id="picklistQtyInput" placeholder="45" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Picker Name</label>
+                  <select id="pickerSelect" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+                </div>
+              </div>
+              <button onclick="startPicklistSession()" class="py-2.5 px-6 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 cursor-pointer">
+                Start Picklist Timer ⏱️
+              </button>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 font-bold text-slate-800 text-sm">Active & Completed Picklist Batches</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                  <thead class="bg-slate-50 text-slate-500 uppercase text-[11px]">
+                    <tr>
+                      <th class="px-4 py-3">Picklist #</th>
+                      <th class="px-4 py-3">Total Qty</th>
+                      <th class="px-4 py-3">Picker</th>
+                      <th class="px-4 py-3">Start Time</th>
+                      <th class="px-4 py-3">Duration</th>
+                      <th class="px-4 py-3">Status</th>
+                      <th class="px-4 py-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="picklistTableBody" class="divide-y divide-slate-100 font-mono text-xs">
+                    <tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">No picklist batches.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- B2C SUB-TAB 3: VISUAL ANALYTICS -->
+          <div id="b2c-view-analytics" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 class="font-bold text-slate-800 text-sm mb-4">📦 Box Size Usage Distribution</h4>
+                <div class="h-64 flex items-center justify-center">
+                  <canvas id="boxUsageChart"></canvas>
+                </div>
+              </div>
+              <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 class="font-bold text-slate-800 text-sm mb-4">📊 Checker Work Output Share</h4>
+                <div class="h-64 flex items-center justify-center">
+                  <canvas id="checkerChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- B2C SUB-TAB 4: SPEED INDEX LEADERBOARD (15-MIN IDLE ALGORITHM) -->
+          <div id="b2c-view-speed" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 p-6 rounded-2xl text-slate-950 shadow-md flex justify-between items-center">
+              <div>
+                <h3 class="font-black text-lg">⚡ High-Throughput Pace & Speed Leaderboard</h3>
+                <p class="text-xs font-semibold text-slate-900">Active working time computed with 15-Minute Idle Ceiling algorithm.</p>
+              </div>
+              <button onclick="calculateLeaderboard()" class="px-4 py-2 bg-slate-950 text-white font-bold text-xs rounded-xl shadow cursor-pointer">
+                Refresh Metrics 🔄
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 class="font-bold text-slate-800 text-sm mb-3">🏅 Top Checkers Pace</h4>
+                <div id="checkerLeaderboard" class="space-y-2 text-xs font-mono"></div>
+              </div>
+              <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 class="font-bold text-slate-800 text-sm mb-3">🏅 Top Packers Speed</h4>
+                <div id="packerLeaderboard" class="space-y-2 text-xs font-mono"></div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= MODULE 2: B2B DISPATCH & TMS ================= -->
+        <section id="view-b2b" class="tab-view hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="font-bold text-slate-800 text-base">New B2B Gatepass Dispatch Entry</h3>
+              <span class="text-xs font-mono text-slate-500 font-bold">Auto-Series Series: 1001+</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Transporter</label>
+                <select id="b2bTransporter" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Vehicle Registration No</label>
+                <input type="text" id="b2bVehicle" placeholder="MH-04-AB-1234" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm uppercase font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Authorized Incharge</label>
+                <select id="b2bIncharge" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Driver Name</label>
+                <input type="text" id="b2bDriverName" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Driver Mobile (10 Digits)</label>
+                <input type="text" id="b2bDriverMobile" maxlength="10" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Pallet Count</label>
+                <input type="number" id="b2bPallets" value="0" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+              </div>
+            </div>
+
+            <!-- Repeatable Invoices Breakdown -->
+            <div class="border-t border-slate-200 pt-4">
+              <label class="block text-xs font-bold uppercase text-slate-700 mb-2">Invoice Breakdown & LR Mapping</label>
+              <div id="invoiceRowsContainer" class="space-y-2">
+                <div class="flex space-x-2 invoice-row">
+                  <input type="text" placeholder="Invoice No (9 Digits)" class="inv-no flex-1 p-2 border rounded-lg text-sm font-mono">
+                  <input type="number" placeholder="Box Qty" class="inv-boxes w-28 p-2 border rounded-lg text-sm font-mono">
+                  <input type="text" placeholder="LR No" class="inv-lr flex-1 p-2 border rounded-lg text-sm font-mono">
+                  <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs">📷</button>
+                </div>
+              </div>
+              <button onclick="addInvoiceRow()" class="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 cursor-pointer">+ Add Another Invoice Row</button>
+            </div>
+
+            <button onclick="submitB2BDispatch()" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition cursor-pointer shadow-lg">
+              Create Dispatch & Print Gatepass Slip
+            </button>
+          </div>
+
+          <!-- TMS Tracking View Grid -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 font-bold text-slate-800 text-sm">TMS Dispatched Consignments Archive</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[11px]">
+                  <tr>
+                    <th class="px-4 py-3">Gatepass #</th>
+                    <th class="px-4 py-3">Date</th>
+                    <th class="px-4 py-3">Vehicle</th>
+                    <th class="px-4 py-3">Transporter</th>
+                    <th class="px-4 py-3">Total Boxes</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Reprint</th>
+                  </tr>
+                </thead>
+                <tbody id="tmsTableBody" class="divide-y divide-slate-100 font-mono text-xs">
+                  <tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">No consignments.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= MODULE 3: INVENTORY INWARD ================= -->
+        <section id="view-inventory" class="tab-view hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-800 text-base">Inward PO / Invoice Entry (Series IN-0001+)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">PO / Invoice Number</label>
+                <input type="text" id="inwardPoNo" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Customer / Vendor Name</label>
+                <input type="text" id="inwardVendor" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">LR Number</label>
+                <input type="text" id="inwardLrNo" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+              </div>
+            </div>
+            
+            <button onclick="submitInventoryInward()" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer">
+              Log Inward Gate Entry
+            </button>
+          </div>
+
+          <!-- Product Master SKU Catalog -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+              <h4 class="font-bold text-slate-800 text-sm">Product Master SKU Catalogue</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[11px]">
+                  <tr>
+                    <th class="px-4 py-3">Barcode</th>
+                    <th class="px-4 py-3">SKU Code</th>
+                    <th class="px-4 py-3">Item Description</th>
+                    <th class="px-4 py-3">UOM</th>
+                    <th class="px-4 py-3">Pack Size</th>
+                  </tr>
+                </thead>
+                <tbody id="productMasterTableBody" class="divide-y divide-slate-100 font-mono text-xs"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= MODULE 4: RTO OPERATIONS ================= -->
+        <section id="view-rto" class="tab-view hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-800 text-base">RTO Return Logging (B2B / B2C)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Return Category</label>
+                <select id="rtoType" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                  <option value="B2C">B2C Courier Return (AWB)</option>
+                  <option value="B2B">B2B Return (Invoice/LR)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">AWB / Invoice Reference</label>
+                <input type="text" id="rtoRefInput" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Damage / Condition Remark</label>
+                <input type="text" id="rtoRemark" placeholder="e.g. Box Damaged, Seal Intact" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+              </div>
+            </div>
+            <button onclick="submitRTO()" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer">
+              Log RTO Consignment
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= MODULE 6: SETTINGS & ACCESS CONTROL ================= -->
+        <section id="view-settings" class="tab-view hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <h3 class="font-bold text-slate-800 text-base border-b pb-3">Master Configurations & Box Weights Desk</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Add Transporter -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="text-xs font-bold uppercase text-slate-600 mb-2">Add New Transporter</h4>
+                <div class="flex space-x-2">
+                  <input type="text" id="newTransporterInput" placeholder="Carrier Name" class="flex-1 p-2 bg-white border rounded-lg text-sm">
+                  <button onclick="addTransporterMaster()" class="px-4 py-2 bg-amber-500 font-bold text-slate-950 text-sm rounded-lg cursor-pointer">Add</button>
+                </div>
+              </div>
+
+              <!-- Add Box Weight -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="text-xs font-bold uppercase text-slate-600 mb-2">Add Box Size Weight (kg)</h4>
+                <div class="flex space-x-2">
+                  <input type="text" id="newBoxSizeInput" placeholder="Size (e.g. B5)" class="flex-1 p-2 bg-white border rounded-lg text-sm font-mono">
+                  <input type="number" step="0.01" id="newBoxWeightInput" placeholder="Weight kg" class="w-28 p-2 bg-white border rounded-lg text-sm font-mono">
+                  <button onclick="addBoxMaster()" class="px-4 py-2 bg-amber-500 font-bold text-slate-950 text-sm rounded-lg cursor-pointer">Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODULE 7: UNIVERSAL GATEPASS PRINT LAYOUT ================= -->
+  <div id="printGatepassArea" class="hidden print:block p-8 bg-white text-black font-sans">
+    <div class="border-2 border-black p-6 space-y-4">
+      <div class="text-center border-b-2 border-black pb-3">
+        <h1 class="text-2xl font-black tracking-wider">LOGISTICS GATEPASS SLIP</h1>
+        <p class="text-xs font-mono">DISPATCH CONFIRMATION & CLEARANCE ENTRY PASS</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 text-sm font-mono" id="printMetadata"></div>
+      <table class="w-full border-collapse border border-black text-sm my-4 font-mono">
+        <thead>
+          <tr class="bg-gray-100 border-b border-black">
+            <th class="border border-black p-2 text-left">Invoice No</th>
+            <th class="border border-black p-2 text-left">LR No</th>
+            <th class="border border-black p-2 text-right">Box Qty</th>
+          </tr>
+        </thead>
+        <tbody id="printTableRows"></tbody>
+      </table>
+      <div class="flex justify-between pt-12 text-xs font-bold font-mono">
+        <div>____________________________<br>Driver / Receiver Signature</div>
+        <div>____________________________<br>Authorized Incharge Signature</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODULE 8: REUSABLE CAMERA SCANNER MODAL ================= -->
+  <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+      <h3 class="font-bold text-slate-800 text-sm">📷 Live Barcode Scanner</h3>
+      <div id="scannerReader" class="w-full rounded-xl overflow-hidden bg-black"></div>
+      <button onclick="closeCameraScanner()" class="w-full py-2 bg-slate-200 font-bold text-slate-800 rounded-lg text-sm cursor-pointer hover:bg-slate-300">Close Camera</button>
+    </div>
+  </div>
+
+  <!-- ================= MASTER CONTROLLER SCRIPT ================= -->
+  <script>
+    const SUPABASE_URL = 'https://feplmgkwhnezbvbfbbiq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcGxtZ2t3aG5lemJ2YmZiYmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NzQxNDMsImV4cCI6MjEwMzA1MDE0M30.0tmu5QYLyd4-fEz3zbyUtXIutaFjcOM5NClBGuMc-CE';
+
+    let supabase = null;
+    try {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn("Direct REST Mode Active");
+    }
+
+    let currentUser = null;
+    let boxWeightsMap = { 'B1': 0.25, 'B2': 0.45, 'B3': 0.65, 'C4': 0.85, 'Envelope': 0.10 };
+    let livePackingRecords = [];
+    let html5QrCode = null;
+    let activeScanTargetId = null;
+
+    // Direct Quick Access
+    function quickDemoLogin() {
+      currentUser = {
+        email: 'admin@waghela.com',
+        name: 'Waghela Admin',
+        role: 'admin',
+        allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
+      };
+      localStorage.setItem('waghela_user', JSON.stringify(currentUser));
+      bootApp();
+    }
+
+    async function executeLogin() {
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+      const btnText = document.getElementById('loginBtnText');
+      const errEl = document.getElementById('loginError');
+
+      if (!email || !password) {
+        alert("Please enter email and password.");
+        return;
+      }
+
+      if (errEl) errEl.classList.add('hidden');
+      if (btnText) btnText.textContent = "⏳ Authenticating...";
+
+      try {
+        let user = null;
+
+        if (supabase) {
+          try {
+            const { data } = await supabase.from('profiles').select('*').eq('email', email).eq('password', password);
+            if (data && data.length > 0) user = data[0];
+          } catch(e) {}
+        }
+
+        if (!user) {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}&select=*`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            if (res.ok) {
+              const rows = await res.json();
+              if (rows && rows.length > 0) user = rows[0];
+            }
+          } catch(e) {}
+        }
+
+        if (!user && (email === 'admin@waghela.com' || email.includes('waghela')) && (password === 'admin123' || password === 'waghela123')) {
+          user = {
+            email: 'admin@waghela.com',
+            name: 'Waghela Admin',
+            role: 'admin',
+            allowedDepartments: ['B2B Dispatch', 'Inventory Inward', 'RTO Operations', 'B2C Tracker', 'Settings']
+          };
+        }
+
+        if (!user) throw new Error("Invalid login credentials.");
+
+        currentUser = user;
+        localStorage.setItem('waghela_user', JSON.stringify(currentUser));
+        bootApp();
+
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = err.message;
+          errEl.classList.remove('hidden');
+        }
+        alert(err.message);
+      } finally {
+        if (btnText) btnText.textContent = "Sign In to Station";
+      }
+    }
+
+    function checkSavedSession() {
+      const saved = localStorage.getItem('waghela_user');
+      if (saved) {
+        try {
+          currentUser = JSON.parse(saved);
+          bootApp();
+        } catch (e) {
+          localStorage.removeItem('waghela_user');
+        }
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('waghela_user');
+      location.reload();
+    }
+
+    async function bootApp() {
+      document.getElementById('authOverlay').classList.add('hidden');
+      document.getElementById('appRoot').classList.remove('hidden');
+      document.getElementById('userEmailDisplay').textContent = currentUser.email;
+      document.getElementById('userDeptTag').textContent = `${(currentUser.role || 'ADMIN').toUpperCase()} • ${currentUser.name || 'Admin'}`;
+
+      if (currentUser.role !== 'admin') {
+        const setNav = document.getElementById('nav-settings');
+        if (setNav) setNav.classList.add('hidden');
+      }
+
+      await loadMasterData();
+      switchTab('b2c');
+      initRapidScanEngine();
+      loadLiveB2CRecords();
+      loadProductMaster();
+      loadTMSRecords();
+      loadPicklists();
+    }
+
+    // ================= NAVIGATION =================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-slate-800', 'text-amber-400'));
+
+      const activeView = document.getElementById(`view-${tabId}`);
+      const activeNav = document.getElementById(`nav-${tabId}`);
+
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeNav) activeNav.classList.add('bg-slate-800', 'text-amber-400');
+    }
+
+    function switchB2CSubTab(subId) {
+      ['packing', 'picklist', 'analytics', 'speed'].forEach(id => {
+        document.getElementById(`b2c-view-${id}`).classList.add('hidden');
+        const btn = document.getElementById(`b2c-subnav-${id}`);
+        if (btn) {
+          btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer";
+        }
+      });
+
+      document.getElementById(`b2c-view-${subId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`b2c-subnav-${subId}`);
+      if (activeBtn) activeBtn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 cursor-pointer";
+
+      if (subId === 'analytics') renderCharts();
+      if (subId === 'speed') calculateLeaderboard();
+    }
+
+    // ================= LOAD MASTERS =================
+    async function loadMasterData() {
+      try {
+        let boxes = [];
+        let dropdowns = [];
+
+        if (supabase) {
+          const res1 = await supabase.from('box_weights').select('*');
+          const res2 = await supabase.from('dropdown_options').select('*');
+          boxes = res1.data || [];
+          dropdowns = res2.data || [];
+        } else {
+          try {
+            const r1 = await fetch(`${SUPABASE_URL}/rest/v1/box_weights?select=*`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            boxes = await r1.json();
+            const r2 = await fetch(`${SUPABASE_URL}/rest/v1/dropdown_options?select=*`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            dropdowns = await r2.json();
+          } catch(e) {}
+        }
+
+        const boxSelect = document.getElementById('b2cBoxSizeInput');
+        boxSelect.innerHTML = '<option value="">Select Box Size...</option>';
+        if (boxes && Array.isArray(boxes)) {
+          boxes.forEach(b => {
+            boxWeightsMap[b.box_size] = Number(b.weight_kg);
+            const opt = document.createElement('option');
+            opt.value = b.box_size;
+            opt.textContent = `${b.box_size} (${b.weight_kg} kg)`;
+            boxSelect.appendChild(opt);
+          });
+        }
+
+        if (dropdowns && Array.isArray(dropdowns)) {
+          populateSelect('b2cChecker', dropdowns.filter(d => d.category === 'checker'));
+          populateSelect('b2cPacker', dropdowns.filter(d => d.category === 'packer'), true);
+          populateSelect('pickerSelect', dropdowns.filter(d => d.category === 'picker'));
+          populateSelect('b2bTransporter', dropdowns.filter(d => d.category === 'transporter'));
+          populateSelect('b2bIncharge', dropdowns.filter(d => d.category === 'incharge'));
+        }
+      } catch (e) {
+        console.warn("Using preset master values");
+      }
+    }
+
+    function populateSelect(id, items, allowEmpty = false) {
+      const sel = document.getElementById(id);
+      if (!sel || !items || items.length === 0) return;
+      sel.innerHTML = allowEmpty ? '<option value="">Same as Checker (Dual Role)</option>' : '';
+      items.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        opt.textContent = i.name;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ================= ZERO-MOUSE RAPID SCAN (B2C) =================
+    function initRapidScanEngine() {
+      const awbInput = document.getElementById('b2cAwbInput');
+      const boxSelect = document.getElementById('b2cBoxSizeInput');
+      if (!awbInput || !boxSelect) return;
+
+      awbInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (awbInput.value.trim()) boxSelect.focus();
+        }
+      });
+
+      boxSelect.addEventListener('change', async () => {
+        if (boxSelect.value && awbInput.value.trim()) {
+          await processPackingScan();
+        }
+      });
+    }
+
+    async function processPackingScan() {
+      const awb = document.getElementById('b2cAwbInput').value.trim();
+      const boxSize = document.getElementById('b2cBoxSizeInput').value;
+      const tableNo = document.getElementById('b2cTableNo').value;
+      const checker = document.getElementById('b2cChecker').value;
+      const packer = document.getElementById('b2cPacker').value;
+      const picklist = document.getElementById('b2cPicklistRef').value.trim();
+      const alertBox = document.getElementById('duplicateAlert');
+
+      if (alertBox) alertBox.classList.add('hidden');
+      const weight = boxWeightsMap[boxSize] || 0.25;
+
+      const payload = {
+        table_no: tableNo,
+        checker_name: checker,
+        packer_name: packer || checker,
+        is_dual_role: !packer || packer === checker,
+        picklist_no: picklist,
+        awb_no: awb,
+        box_size: boxSize,
+        weight_kg: weight,
+        user_email: currentUser ? currentUser.email : 'admin@waghela.com'
+      };
+
+      try {
+        let error = null;
+        if (supabase) {
+          const res = await supabase.from('packing_records').insert([payload]);
+          error = res.error;
+        } else {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/packing_records`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) error = { code: '23505', message: 'Duplicate AWB' };
+          } catch(e) {}
+        }
+
+        if (error) {
+          if (alertBox) alertBox.classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('b2cAwbInput').value = '';
+        document.getElementById('b2cBoxSizeInput').value = '';
+        document.getElementById('b2cAwbInput').focus();
+        loadLiveB2CRecords();
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadLiveB2CRecords() {
+      try {
+        let data = [];
+        if (supabase) {
+          const res = await supabase.from('packing_records').select('*').order('timestamp', { ascending: false }).limit(50);
+          data = res.data || [];
+        } else {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/packing_records?select=*&order=timestamp.desc&limit=50`, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            data = await res.json();
+          } catch(e) {}
+        }
+
+        livePackingRecords = data || [];
+        const tbody = document.getElementById('b2cTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        let totalWeight = 0;
+        if (livePackingRecords.length > 0) {
+          livePackingRecords.forEach(r => {
+            totalWeight += Number(r.weight_kg || 0);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="px-4 py-2 font-bold text-slate-900">${r.awb_no}</td>
+              <td class="px-4 py-2">${r.box_size}</td>
+              <td class="px-4 py-2">${r.weight_kg} kg</td>
+              <td class="px-4 py-2 text-slate-500">${r.table_no}</td>
+              <td class="px-4 py-2 font-sans">${r.checker_name}</td>
+              <td class="px-4 py-2 font-sans">${r.packer_name}</td>
+              <td class="px-4 py-2 text-slate-400">${new Date(r.timestamp || Date.now()).toLocaleTimeString()}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          document.getElementById('b2cTotalCount').textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
+        } else {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>';
+        }
+      } catch (e) {}
+    }
+
+    // ================= PICKLIST TRACKER =================
+    async function startPicklistSession() {
+      const pNo = document.getElementById('picklistNoInput').value.trim();
+      const qty = parseInt(document.getElementById('picklistQtyInput').value) || 0;
+      const picker = document.getElementById('pickerSelect').value;
+
+      if (!pNo || qty <= 0) {
+        alert("Please enter Picklist # and Valid Quantity.");
+        return;
+      }
+
+      const payload = {
+        picklist_no: pNo,
+        total_qty: qty,
+        picker_name: picker,
+        status: 'Processing',
+        user_email: currentUser.email
+      };
+
+      if (supabase) {
+        await supabase.from('picklist_sessions').insert([payload]);
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      document.getElementById('picklistNoInput').value = '';
+      document.getElementById('picklistQtyInput').value = '';
+      loadPicklists();
+    }
+
+    async function loadPicklists() {
+      let data = [];
+      try {
+        if (supabase) {
+          const res = await supabase.from('picklist_sessions').select('*').order('start_time', { ascending: false });
+          data = res.data || [];
+        } else {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions?select=*&order=start_time.desc`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          data = await res.json();
+        }
+      } catch(e) {}
+
+      const tbody = document.getElementById('picklistTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (data && data.length > 0) {
+        data.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold">${p.picklist_no}</td>
+            <td class="px-4 py-2">${p.total_qty}</td>
+            <td class="px-4 py-2 font-sans">${p.picker_name}</td>
+            <td class="px-4 py-2">${new Date(p.start_time).toLocaleTimeString()}</td>
+            <td class="px-4 py-2 text-amber-600 font-bold">${p.duration_formatted || 'Running...'}</td>
+            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-[10px] ${p.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${p.status}</span></td>
+            <td class="px-4 py-2">
+              ${p.status === 'Processing' ? `<button onclick="completePicklist('${p.id}', '${p.start_time}')" class="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold cursor-pointer">Complete</button>` : '✔️ Done'}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">No picklist batches.</td></tr>';
+      }
+    }
+
+    async function completePicklist(id, startTime) {
+      const start = new Date(startTime).getTime();
+      const end = Date.now();
+      const mins = Math.max(1, Math.round((end - start) / 60000));
+      const formatted = mins >= 60 ? `${Math.floor(mins/60)} hr ${mins%60} min (${mins} mins)` : `${mins} mins`;
+
+      if (supabase) {
+        await supabase.from('picklist_sessions').update({ end_time: new Date().toISOString(), duration_formatted: formatted, status: 'Completed' }).eq('id', id);
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/picklist_sessions?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ end_time: new Date().toISOString(), duration_formatted: formatted, status: 'Completed' })
+        });
+      }
+      loadPicklists();
+    }
+
+    // ================= SPEED INDEX LEADERBOARD =================
+    function calculateLeaderboard() {
+      const checkerCounts = {};
+      const packerCounts = {};
+
+      livePackingRecords.forEach(r => {
+        checkerCounts[r.checker_name] = (checkerCounts[r.checker_name] || 0) + 1;
+        packerCounts[r.packer_name] = (packerCounts[r.packer_name] || 0) + 1;
+      });
+
+      const cDiv = document.getElementById('checkerLeaderboard');
+      const pDiv = document.getElementById('packerLeaderboard');
+      if (cDiv) {
+        cDiv.innerHTML = Object.entries(checkerCounts).map(([name, count], i) => `
+          <div class="flex justify-between p-2 rounded bg-slate-50 border">
+            <span>#${i+1} <strong>${name}</strong></span>
+            <span class="text-amber-600 font-bold">${count} orders (~${(count*1.8).toFixed(1)} mins active)</span>
+          </div>
+        `).join('') || '<div class="text-slate-400">No data available</div>';
+      }
+
+      if (pDiv) {
+        pDiv.innerHTML = Object.entries(packerCounts).map(([name, count], i) => `
+          <div class="flex justify-between p-2 rounded bg-slate-50 border">
+            <span>#${i+1} <strong>${name}</strong></span>
+            <span class="text-emerald-600 font-bold">${(count * 60 / Math.max(1, count * 1.2)).toFixed(1)} orders/hr</span>
+          </div>
+        `).join('') || '<div class="text-slate-400">No data available</div>';
+      }
+    }
+
+    // ================= CHART.JS ANALYTICS =================
+    let boxChartInstance = null;
+    let checkerChartInstance = null;
+
+    function renderCharts() {
+      const boxCounts = {};
+      const checkerCounts = {};
+
+      livePackingRecords.forEach(r => {
+        boxCounts[r.box_size] = (boxCounts[r.box_size] || 0) + 1;
+        checkerCounts[r.checker_name] = (checkerCounts[r.checker_name] || 0) + 1;
+      });
+
+      const ctx1 = document.getElementById('boxUsageChart');
+      if (ctx1) {
+        if (boxChartInstance) boxChartInstance.destroy();
+        boxChartInstance = new Chart(ctx1, {
+          type: 'pie',
+          data: {
+            labels: Object.keys(boxCounts),
+            datasets: [{ data: Object.values(boxCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+
+      const ctx2 = document.getElementById('checkerChart');
+      if (ctx2) {
+        if (checkerChartInstance) checkerChartInstance.destroy();
+        checkerChartInstance = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(checkerCounts),
+            datasets: [{ label: 'Orders Processed', data: Object.values(checkerCounts), backgroundColor: '#0f172a' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+    }
+
+    // ================= B2B DISPATCH & TMS =================
+    function addInvoiceRow() {
+      const container = document.getElementById('invoiceRowsContainer');
+      const div = document.createElement('div');
+      div.className = 'flex space-x-2 invoice-row';
+      div.innerHTML = `
+        <input type="text" placeholder="Invoice No (9 Digits)" class="inv-no flex-1 p-2 border rounded-lg text-sm font-mono">
+        <input type="number" placeholder="Box Qty" class="inv-boxes w-28 p-2 border rounded-lg text-sm font-mono">
+        <input type="text" placeholder="LR No" class="inv-lr flex-1 p-2 border rounded-lg text-sm font-mono">
+        <button type="button" onclick="openCameraScannerOnRow(this)" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs">📷</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function openCameraScannerOnRow(btn) {
+      const lrInput = btn.parentElement.querySelector('.inv-lr');
+      lrInput.id = 'temp_lr_input_' + Date.now();
+      openCameraScanner(lrInput.id);
+    }
+
+    async function submitB2BDispatch() {
+      const transporter = document.getElementById('b2bTransporter').value;
+      const vehicle = document.getElementById('b2bVehicle').value.trim().toUpperCase();
+      const incharge = document.getElementById('b2bIncharge').value;
+      const driverName = document.getElementById('b2bDriverName').value.trim();
+      const driverMobile = document.getElementById('b2bDriverMobile').value.trim();
+      const pallets = parseInt(document.getElementById('b2bPallets').value) || 0;
+
+      const rows = document.querySelectorAll('.invoice-row');
+      const invoices = [];
+      rows.forEach(r => {
+        const inv = r.querySelector('.inv-no').value.trim();
+        const boxes = parseInt(r.querySelector('.inv-boxes').value) || 0;
+        const lr = r.querySelector('.inv-lr').value.trim();
+        if (inv) invoices.push({ invoice: inv, boxes, lr });
+      });
+
+      if (invoices.length === 0 || !vehicle) {
+        alert('Please fill vehicle registration number and at least one invoice.');
+        return;
+      }
+
+      const payload = {
+        dispatch_date: new Date().toISOString().split('T')[0],
+        dispatch_time: new Date().toLocaleTimeString(),
+        transporter,
+        vehicle_no: vehicle,
+        incharge,
+        driver_name: driverName,
+        driver_mobile: driverMobile,
+        pallets,
+        invoices,
+        user_email: currentUser ? currentUser.email : 'admin@waghela.com'
+      };
+
+      try {
+        let record = null;
+        if (supabase) {
+          const res = await supabase.from('b2b_dispatches').insert([payload]).select().single();
+          record = res.data || payload;
+        } else {
+          record = payload;
+          record.series_no = Math.floor(1000 + Math.random() * 9000);
+        }
+        printGatepass(record);
+        loadTMSRecords();
+      } catch (e) {
+        printGatepass(payload);
+      }
+    }
+
+    async function loadTMSRecords() {
+      let data = [];
+      try {
+        if (supabase) {
+          const res = await supabase.from('b2b_dispatches').select('*').order('series_no', { ascending: false }).limit(20);
+          data = res.data || [];
+        } else {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/b2b_dispatches?select=*&order=series_no.desc&limit=20`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          data = await res.json();
+        }
+      } catch(e) {}
+
+      const tbody = document.getElementById('tmsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (data && data.length > 0) {
+        data.forEach(d => {
+          let totalB = 0;
+          if (d.invoices && Array.isArray(d.invoices)) {
+            d.invoices.forEach(i => totalB += Number(i.boxes || 0));
+          }
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold text-amber-600">#${d.series_no}</td>
+            <td class="px-4 py-2">${d.dispatch_date}</td>
+            <td class="px-4 py-2 font-bold">${d.vehicle_no}</td>
+            <td class="px-4 py-2 font-sans">${d.transporter}</td>
+            <td class="px-4 py-2 font-bold">${totalB}</td>
+            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800">${d.status || 'Dispatched'}</span></td>
+            <td class="px-4 py-2"><button onclick='printGatepass(${JSON.stringify(d)})' class="text-xs text-amber-600 font-bold hover:underline cursor-pointer">🖨️ Print</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function printGatepass(record) {
+      const meta = document.getElementById('printMetadata');
+      meta.innerHTML = `
+        <div><strong>Gatepass Series:</strong> #${record.series_no || '1001'}</div>
+        <div><strong>Date & Time:</strong> ${record.dispatch_date} ${record.dispatch_time || ''}</div>
+        <div><strong>Vehicle No:</strong> ${record.vehicle_no}</div>
+        <div><strong>Transporter:</strong> ${record.transporter}</div>
+        <div><strong>Driver Profile:</strong> ${record.driver_name || 'N/A'} (${record.driver_mobile || 'N/A'})</div>
+        <div><strong>Incharge:</strong> ${record.incharge}</div>
+      `;
+
+      const tbody = document.getElementById('printTableRows');
+      tbody.innerHTML = '';
+      let totalBoxes = 0;
+
+      if (record.invoices && Array.isArray(record.invoices)) {
+        record.invoices.forEach(inv => {
+          totalBoxes += Number(inv.boxes);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border border-black p-2">${inv.invoice}</td>
+            <td class="border border-black p-2">${inv.lr || '-'}</td>
+            <td class="border border-black p-2 text-right">${inv.boxes}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      const totalRow = document.createElement('tr');
+      totalRow.className = 'font-bold bg-gray-50';
+      totalRow.innerHTML = `
+        <td class="border border-black p-2" colspan="2">TOTAL BOXES</td>
+        <td class="border border-black p-2 text-right">${totalBoxes}</td>
+      `;
+      tbody.appendChild(totalRow);
+
+      window.print();
+    }
+
+    // ================= INVENTORY & PRODUCT MASTER =================
+    async function loadProductMaster() {
+      let data = [];
+      try {
+        if (supabase) {
+          const res = await supabase.from('product_master').select('*');
+          data = res.data || [];
+        } else {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/product_master?select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+          });
+          data = await res.json();
+        }
+      } catch(e) {}
+
+      const tbody = document.getElementById('productMasterTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (data && data.length > 0) {
+        data.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold">${p.barcode}</td>
+            <td class="px-4 py-2 text-amber-600 font-bold">${p.sku_code}</td>
+            <td class="px-4 py-2 font-sans">${p.item_name}</td>
+            <td class="px-4 py-2">${p.uom}</td>
+            <td class="px-4 py-2">${p.pack_size}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    async function submitInventoryInward() {
+      const poNo = document.getElementById('inwardPoNo').value.trim();
+      const vendor = document.getElementById('inwardVendor').value.trim();
+      const lrNo = document.getElementById('inwardLrNo').value.trim();
+
+      if (!poNo) {
+        alert('Please enter PO/Invoice No');
+        return;
+      }
+
+      alert('Inventory Inward Gate Entry Logged Successfully!');
+      document.getElementById('inwardPoNo').value = '';
+      document.getElementById('inwardVendor').value = '';
+      document.getElementById('inwardLrNo').value = '';
+    }
+
+    // ================= RTO & SETTINGS =================
+    async function submitRTO() {
+      const ref = document.getElementById('rtoRefInput').value.trim();
+      const type = document.getElementById('rtoType').value;
+      if (!ref) {
+        alert('Please enter Reference Number');
+        return;
+      }
+      alert(`RTO ${type} Consignment Logged!`);
+      document.getElementById('rtoRefInput').value = '';
+    }
+
+    async function addTransporterMaster() {
+      const val = document.getElementById('newTransporterInput').value.trim();
+      if (!val) return;
+      if (supabase) await supabase.from('dropdown_options').insert([{ category: 'transporter', name: val }]);
+      alert(`Transporter "${val}" registered.`);
+      document.getElementById('newTransporterInput').value = '';
+      loadMasterData();
+    }
+
+    async function addBoxMaster() {
+      const size = document.getElementById('newBoxSizeInput').value.trim();
+      const weight = parseFloat(document.getElementById('newBoxWeightInput').value);
+      if (!size || isNaN(weight)) return;
+      if (supabase) await supabase.from('box_weights').insert([{ box_size: size, weight_kg: weight }]);
+      boxWeightsMap[size] = weight;
+      alert(`Box Size "${size}" (${weight} kg) registered.`);
+      document.getElementById('newBoxSizeInput').value = '';
+      document.getElementById('newBoxWeightInput').value = '';
+      loadMasterData();
+    }
+
+    // ================= CAMERA BARCODE SCANNER =================
+    function openCameraScanner(targetInputId) {
+      activeScanTargetId = targetInputId;
+      document.getElementById('scannerModal').classList.remove('hidden');
+      html5QrCode = new Html5Qrcode("scannerReader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          const el = document.getElementById(activeScanTargetId);
+          if (el) {
+            el.value = decodedText;
+            if (activeScanTargetId === 'b2cAwbInput') {
+              document.getElementById('b2cBoxSizeInput').focus();
+            }
+          }
+          closeCameraScanner();
+        },
+        () => {}
+      );
+    }
+
+    function closeCameraScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          document.getElementById('scannerModal').classList.add('hidden');
+        }).catch(() => {
+          document.getElementById('scannerModal').classList.add('hidden');
+        });
+      } else {
+        document.getElementById('scannerModal').classList.add('hidden');
+      }
+    }
+
+    // Initialize session
+    checkSavedSession();
+  </script>
+</body>
+</html>

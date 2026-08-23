@@ -37,6 +37,9 @@
 </head>
 <body class="bg-slate-100 text-slate-900 min-h-screen font-sans antialiased">
 
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
   <!-- ================= AUTH MODAL (LOGIN) ================= -->
   <div id="authOverlay" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl text-white">
@@ -63,12 +66,10 @@
           <input type="password" id="loginPassword" value="admin123" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none text-white font-mono">
         </div>
         
-        <!-- DIRECT FORCE-OPEN LOGIN BUTTON -->
         <button id="loginSubmitBtn" onclick="document.getElementById('authOverlay').style.display='none'; document.getElementById('appRoot').style.display='flex'; launchPortal();" type="button" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] font-bold rounded-lg text-slate-950 transition flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 cursor-pointer">
           <span id="loginBtnText">Sign In to Station</span>
         </button>
 
-        <!-- DIRECT FORCE-OPEN INSTANT BUTTON -->
         <button onclick="document.getElementById('authOverlay').style.display='none'; document.getElementById('appRoot').style.display='flex'; launchPortal();" type="button" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition cursor-pointer">
           ⚡ Instant One-Click Entry
         </button>
@@ -124,8 +125,8 @@
       <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between print:hidden sticky top-0 z-20 shadow-sm">
         <h2 id="sectionTitle" class="text-lg font-bold text-slate-800">B2C Packing Station</h2>
         <div class="flex items-center space-x-3">
-          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-            ● Supabase Cloud Sync Active
+          <span id="cloudStatusBadge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            ● Supabase Cloud Live Sync
           </span>
         </div>
       </header>
@@ -161,14 +162,14 @@
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Checker Name</label>
-                <select id="b2cChecker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm">
+                <select id="b2cChecker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold">
                   <option value="Ramesh K">Ramesh K</option>
                   <option value="Mahesh V">Mahesh V</option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Packer Name</label>
-                <select id="b2cPacker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm">
+                <select id="b2cPacker" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold">
                   <option value="">Same as Checker (Dual Role)</option>
                   <option value="Kishan S">Kishan S</option>
                   <option value="Dinesh M">Dinesh M</option>
@@ -190,10 +191,10 @@
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-2">
                   <label class="block text-xs font-bold uppercase mb-1 text-slate-300">AWB Tracking Number (Gun Scan)</label>
-                  <input type="text" id="b2cAwbInput" placeholder="Scan AWB and press Enter..." class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-amber-400 font-mono text-lg rounded-xl focus:border-amber-500 outline-none">
+                  <input type="text" id="b2cAwbInput" placeholder="Scan or Type AWB and press Enter..." class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-amber-400 font-mono text-lg rounded-xl focus:border-amber-500 outline-none">
                 </div>
                 <div>
-                  <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Box Size & Auto-Weight</label>
+                  <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Box Size & Auto-Submit</label>
                   <select id="b2cBoxSizeInput" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:border-amber-500 outline-none font-mono">
                     <option value="">Select Box Size...</option>
                     <option value="B1">B1 (0.25 kg)</option>
@@ -203,6 +204,13 @@
                     <option value="Envelope">Envelope (0.10 kg)</option>
                   </select>
                 </div>
+              </div>
+
+              <!-- Manual Submit Fallback Button -->
+              <div class="mt-3 flex justify-end">
+                <button onclick="processPackingScan()" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 font-bold text-slate-950 rounded-xl text-xs cursor-pointer shadow">
+                  ⚡ Submit Scan Record
+                </button>
               </div>
 
               <!-- Multi-Table Duplicate Blocker Alert -->
@@ -228,10 +236,11 @@
                       <th class="px-4 py-3">Checker</th>
                       <th class="px-4 py-3">Packer</th>
                       <th class="px-4 py-3">Time</th>
+                      <th class="px-4 py-3">Action</th>
                     </tr>
                   </thead>
                   <tbody id="b2cTableBody" class="divide-y divide-slate-100 font-mono text-xs text-slate-700">
-                    <tr><td colspan="7" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>
+                    <tr><td colspan="8" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -253,7 +262,7 @@
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Picker Name</label>
-                  <select id="pickerSelect" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                  <select id="pickerSelect" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
                     <option value="Pravin T">Pravin T</option>
                     <option value="Anil R">Anil R</option>
                   </select>
@@ -305,7 +314,7 @@
             </div>
           </div>
 
-          <!-- B2C SUB-TAB 4: SPEED INDEX LEADERBOARD (15-MIN IDLE ALGORITHM) -->
+          <!-- B2C SUB-TAB 4: SPEED INDEX LEADERBOARD -->
           <div id="b2c-view-speed" class="space-y-6" style="display: none;">
             <div class="bg-gradient-to-r from-amber-500 to-amber-600 p-6 rounded-2xl text-slate-950 shadow-md flex justify-between items-center">
               <div>
@@ -342,7 +351,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Transporter</label>
-                <select id="b2bTransporter" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                <select id="b2bTransporter" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
                   <option value="Blue Dart">Blue Dart</option>
                   <option value="Delhivery">Delhivery</option>
                   <option value="V-Trans">V-Trans</option>
@@ -355,7 +364,7 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Authorized Incharge</label>
-                <select id="b2bIncharge" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                <select id="b2bIncharge" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
                   <option value="Bhavesh Waghela">Bhavesh Waghela</option>
                   <option value="Suresh Patel">Suresh Patel</option>
                 </select>
@@ -424,15 +433,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">PO / Invoice Number</label>
-                <input type="text" id="inwardPoNo" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+                <input type="text" id="inwardPoNo" placeholder="PO-7788" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Customer / Vendor Name</label>
-                <input type="text" id="inwardVendor" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                <input type="text" id="inwardVendor" placeholder="Vendor Co." class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">LR Number</label>
-                <input type="text" id="inwardLrNo" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+                <input type="text" id="inwardLrNo" placeholder="LR-1100" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
               </div>
             </div>
             
@@ -442,9 +451,12 @@
           </div>
 
           <!-- Product Master SKU Catalog -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
+            <div class="flex justify-between items-center">
               <h4 class="font-bold text-slate-800 text-sm">Product Master SKU Catalogue</h4>
+              <button onclick="document.getElementById('addSkuModal').style.display='flex';" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 font-bold text-slate-950 text-xs rounded-lg cursor-pointer">
+                + Register New SKU
+              </button>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-sm">
@@ -457,15 +469,7 @@
                     <th class="px-4 py-3">Pack Size</th>
                   </tr>
                 </thead>
-                <tbody id="productMasterTableBody" class="divide-y divide-slate-100 font-mono text-xs">
-                  <tr>
-                    <td class="px-4 py-2 font-bold">8901234001</td>
-                    <td class="px-4 py-2 text-amber-600 font-bold">SKU-WAG-101</td>
-                    <td class="px-4 py-2 font-sans">Industrial Heavy Duty Box Tape 3-Inch</td>
-                    <td class="px-4 py-2">ROLL</td>
-                    <td class="px-4 py-2">6</td>
-                  </tr>
-                </tbody>
+                <tbody id="productMasterTableBody" class="divide-y divide-slate-100 font-mono text-xs"></tbody>
               </table>
             </div>
           </div>
@@ -478,14 +482,14 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Return Category</label>
-                <select id="rtoType" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm">
+                <select id="rtoType" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-semibold">
                   <option value="B2C">B2C Courier Return (AWB)</option>
                   <option value="B2B">B2B Return (Invoice/LR)</option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">AWB / Invoice Reference</label>
-                <input type="text" id="rtoRefInput" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
+                <input type="text" id="rtoRefInput" placeholder="Ref AWB / Inv" class="w-full p-2.5 bg-slate-50 border rounded-lg text-sm font-mono">
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Damage / Condition Remark</label>
@@ -501,4 +505,409 @@
         <!-- ================= MODULE 6: SETTINGS & ACCESS CONTROL ================= -->
         <section id="view-settings" class="tab-view space-y-6" style="display: none;">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <h3 class="font-bold text-slate-800 text-base border-b pb-3">Mas
+            <h3 class="font-bold text-slate-800 text-base border-b pb-3">Master Configurations & Box Weights Desk</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Add Transporter -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <h4 class="text-xs font-bold uppercase text-slate-600">Add New Transporter</h4>
+                <div class="flex space-x-2">
+                  <input type="text" id="newTransporterInput" placeholder="Carrier Name" class="flex-1 p-2 bg-white border rounded-lg text-sm">
+                  <button onclick="addTransporterMaster()" class="px-4 py-2 bg-amber-500 font-bold text-slate-950 text-sm rounded-lg cursor-pointer">Add</button>
+                </div>
+              </div>
+
+              <!-- Add Box Weight -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <h4 class="text-xs font-bold uppercase text-slate-600">Add Box Size Weight (kg)</h4>
+                <div class="flex space-x-2">
+                  <input type="text" id="newBoxSizeInput" placeholder="Size (e.g. B5)" class="flex-1 p-2 bg-white border rounded-lg text-sm font-mono">
+                  <input type="number" step="0.01" id="newBoxWeightInput" placeholder="Weight kg" class="w-28 p-2 bg-white border rounded-lg text-sm font-mono">
+                  <button onclick="addBoxMaster()" class="px-4 py-2 bg-amber-500 font-bold text-slate-950 text-sm rounded-lg cursor-pointer">Add</button>
+                </div>
+              </div>
+
+              <!-- Add Checker/Packer/Picker -->
+              <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 md:col-span-2">
+                <h4 class="text-xs font-bold uppercase text-slate-600">Add Station Operator / Personnel</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <select id="newPersonRole" class="p-2 bg-white border rounded-lg text-sm font-semibold">
+                    <option value="checker">Checker</option>
+                    <option value="packer">Packer</option>
+                    <option value="picker">Picker</option>
+                    <option value="incharge">Incharge</option>
+                  </select>
+                  <input type="text" id="newPersonName" placeholder="Full Name" class="p-2 bg-white border rounded-lg text-sm">
+                  <button onclick="addPersonMaster()" class="px-4 py-2 bg-amber-500 font-bold text-slate-950 text-sm rounded-lg cursor-pointer">Add Operator</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= REGISTER SKU MODAL ================= -->
+  <div id="addSkuModal" class="fixed inset-0 bg-slate-950/80 z-50 items-center justify-center p-4 shadow-2xl" style="display: none;">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
+      <h3 class="font-bold text-slate-800 text-sm">Register New Product SKU</h3>
+      <div class="space-y-3 text-sm">
+        <input type="text" id="newSkuBarcode" placeholder="Barcode (e.g. 8901234005)" class="w-full p-2.5 border rounded-lg font-mono">
+        <input type="text" id="newSkuCode" placeholder="SKU Code (e.g. SKU-WAG-205)" class="w-full p-2.5 border rounded-lg font-mono">
+        <input type="text" id="newSkuName" placeholder="Item Description / Title" class="w-full p-2.5 border rounded-lg">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="newSkuUom" placeholder="UOM (PCS, BOX)" value="PCS" class="p-2.5 border rounded-lg uppercase">
+          <input type="text" id="newSkuPack" placeholder="Pack Size" value="1" class="p-2.5 border rounded-lg">
+        </div>
+      </div>
+      <div class="flex space-x-2">
+        <button onclick="saveNewSku()" class="flex-1 py-2.5 bg-amber-500 font-bold text-slate-950 rounded-lg text-sm cursor-pointer">Save to Product Master</button>
+        <button onclick="document.getElementById('addSkuModal').style.display='none';" class="px-4 py-2.5 bg-slate-200 text-slate-800 font-bold rounded-lg text-sm cursor-pointer">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODULE 7: UNIVERSAL GATEPASS PRINT LAYOUT ================= -->
+  <div id="printGatepassArea" class="hidden print:block p-8 bg-white text-black font-sans">
+    <div class="border-2 border-black p-6 space-y-4">
+      <div class="text-center border-b-2 border-black pb-3">
+        <h1 class="text-2xl font-black tracking-wider">LOGISTICS GATEPASS SLIP</h1>
+        <p class="text-xs font-mono">DISPATCH CONFIRMATION & CLEARANCE ENTRY PASS</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 text-sm font-mono" id="printMetadata"></div>
+      <table class="w-full border-collapse border border-black text-sm my-4 font-mono">
+        <thead>
+          <tr class="bg-gray-100 border-b border-black">
+            <th class="border border-black p-2 text-left">Invoice No</th>
+            <th class="border border-black p-2 text-left">LR No</th>
+            <th class="border border-black p-2 text-right">Box Qty</th>
+          </tr>
+        </thead>
+        <tbody id="printTableRows"></tbody>
+      </table>
+      <div class="flex justify-between pt-12 text-xs font-bold font-mono">
+        <div>____________________________<br>Driver / Receiver Signature</div>
+        <div>____________________________<br>Authorized Incharge Signature</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODULE 8: REUSABLE CAMERA SCANNER MODAL ================= -->
+  <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 z-50 items-center justify-center p-4 shadow-2xl" style="display: none;">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4">
+      <h3 class="font-bold text-slate-800 text-sm">📷 Live Barcode Scanner</h3>
+      <div id="scannerReader" class="w-full rounded-xl overflow-hidden bg-black"></div>
+      <button onclick="closeCameraScanner()" class="w-full py-2 bg-slate-200 font-bold text-slate-800 rounded-lg text-sm cursor-pointer hover:bg-slate-300">Close Camera</button>
+    </div>
+  </div>
+
+  <!-- ================= MASTER CONTROLLER SCRIPT ================= -->
+  <script>
+    const SUPABASE_URL = 'https://feplmgkwhnezbvbfbbiq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcGxtZ2t3aG5lemJ2YmZiYmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NzQxNDMsImV4cCI6MjEwMzA1MDE0M30.0tmu5QYLyd4-fEz3zbyUtXIutaFjcOM5NClBGuMc-CE';
+
+    let supabaseClient = null;
+    try {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn("Supabase init notice:", e);
+    }
+
+    let currentUser = {
+      email: 'admin@waghela.com',
+      name: 'Waghela Admin',
+      role: 'admin'
+    };
+
+    let boxWeightsMap = { 'B1': 0.25, 'B2': 0.45, 'B3': 0.65, 'C4': 0.85, 'Envelope': 0.10 };
+    let livePackingRecords = [];
+    let localTMS = [];
+    let localPicklists = [];
+    let html5QrCode = null;
+    let activeScanTargetId = null;
+
+    // Toast helper
+    function showToast(msg, isSuccess = true) {
+      const c = document.getElementById('toastContainer');
+      if (!c) return;
+      const el = document.createElement('div');
+      el.className = `px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xl transition transform duration-300 ${isSuccess ? 'bg-emerald-600' : 'bg-red-600'}`;
+      el.textContent = msg;
+      c.appendChild(el);
+      setTimeout(() => { el.remove(); }, 3000);
+    }
+
+    // Portal Initialization
+    function launchPortal() {
+      switchTab('b2c');
+      initRapidScanEngine();
+      syncMasterDataFromCloud();
+      syncLiveB2CFromCloud();
+      syncTMSFromCloud();
+      syncProductMasterFromCloud();
+      syncPicklistsFromCloud();
+      showToast("🚀 Station Ready & Connected to Supabase");
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('waghela_user');
+      location.reload();
+    }
+
+    // Navigation Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'text-amber-400');
+        btn.classList.add('text-slate-200');
+      });
+
+      const activeView = document.getElementById(`view-${tabId}`);
+      const activeNav = document.getElementById(`nav-${tabId}`);
+
+      if (activeView) activeView.style.display = 'block';
+      if (activeNav) {
+        activeNav.classList.add('bg-slate-800', 'text-amber-400');
+        activeNav.classList.remove('text-slate-200');
+      }
+
+      const titles = {
+        'b2c': 'B2C Packing Station',
+        'b2b': 'B2B Gatepass Dispatch & TMS',
+        'inventory': 'Inventory Inward & Product Master',
+        'rto': 'RTO Consignment Logging',
+        'settings': 'Settings & Master Configurations'
+      };
+      const titleEl = document.getElementById('sectionTitle');
+      if (titleEl && titles[tabId]) titleEl.textContent = titles[tabId];
+    }
+
+    function switchB2CSubTab(subId) {
+      ['packing', 'picklist', 'analytics', 'speed'].forEach(id => {
+        const el = document.getElementById(`b2c-view-${id}`);
+        if (el) el.style.display = 'none';
+        const btn = document.getElementById(`b2c-subnav-${id}`);
+        if (btn) {
+          btn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 hover:bg-slate-200 cursor-pointer";
+        }
+      });
+
+      const activeEl = document.getElementById(`b2c-view-${subId}`);
+      if (activeEl) activeEl.style.display = 'block';
+      const activeBtn = document.getElementById(`b2c-subnav-${subId}`);
+      if (activeBtn) activeBtn.className = "px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 cursor-pointer";
+
+      if (subId === 'analytics') renderCharts();
+      if (subId === 'speed') calculateLeaderboard();
+    }
+
+    // ================= ZERO-MOUSE RAPID SCAN (B2C) =================
+    function initRapidScanEngine() {
+      const awbInput = document.getElementById('b2cAwbInput');
+      const boxSelect = document.getElementById('b2cBoxSizeInput');
+      if (!awbInput || !boxSelect) return;
+
+      awbInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (awbInput.value.trim()) boxSelect.focus();
+        }
+      });
+
+      boxSelect.addEventListener('change', async () => {
+        if (boxSelect.value && awbInput.value.trim()) {
+          await processPackingScan();
+        }
+      });
+    }
+
+    async function processPackingScan() {
+      const awb = document.getElementById('b2cAwbInput').value.trim();
+      const boxSize = document.getElementById('b2cBoxSizeInput').value;
+      const tableNo = document.getElementById('b2cTableNo').value;
+      const checker = document.getElementById('b2cChecker').value;
+      const packer = document.getElementById('b2cPacker').value;
+      const picklist = document.getElementById('b2cPicklistRef').value.trim();
+      const alertBox = document.getElementById('duplicateAlert');
+
+      if (!awb) {
+        showToast("Please scan or type AWB first", false);
+        return;
+      }
+
+      if (!boxSize) {
+        showToast("Please select Box Size", false);
+        return;
+      }
+
+      if (alertBox) alertBox.style.display = 'none';
+
+      // Check Duplicate
+      const exists = livePackingRecords.some(r => r.awb_no.toLowerCase() === awb.toLowerCase());
+      if (exists) {
+        if (alertBox) alertBox.style.display = 'block';
+        showToast("Duplicate AWB Detected!", false);
+        return;
+      }
+
+      const weight = boxWeightsMap[boxSize] || 0.25;
+
+      const record = {
+        table_no: tableNo,
+        checker_name: checker,
+        packer_name: packer || checker,
+        is_dual_role: !packer || packer === checker,
+        picklist_no: picklist,
+        awb_no: awb,
+        box_size: boxSize,
+        weight_kg: weight,
+        user_email: currentUser.email
+      };
+
+      livePackingRecords.unshift(record);
+      renderLiveB2CTable();
+
+      // Clear & refocus for rapid scanner gun
+      document.getElementById('b2cAwbInput').value = '';
+      document.getElementById('b2cBoxSizeInput').value = '';
+      document.getElementById('b2cAwbInput').focus();
+
+      // Live Supabase Sync
+      try {
+        if (supabaseClient) {
+          const { error } = await supabaseClient.from('packing_records').insert([record]);
+          if (error) {
+            console.warn("Supabase insert notice:", error.message);
+          } else {
+            showToast(`✅ Scanned & Synced to Supabase: AWB ${awb}`);
+          }
+        }
+      } catch(e) {}
+    }
+
+    async function syncLiveB2CFromCloud() {
+      try {
+        if (supabaseClient) {
+          const { data } = await supabaseClient.from('packing_records').select('*').order('timestamp', { ascending: false }).limit(50);
+          if (data && data.length > 0) {
+            livePackingRecords = data;
+            renderLiveB2CTable();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function renderLiveB2CTable() {
+      const tbody = document.getElementById('b2cTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let totalWeight = 0;
+      if (livePackingRecords.length > 0) {
+        livePackingRecords.forEach((r, idx) => {
+          totalWeight += Number(r.weight_kg || 0);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold text-slate-900">${r.awb_no}</td>
+            <td class="px-4 py-2">${r.box_size}</td>
+            <td class="px-4 py-2">${r.weight_kg} kg</td>
+            <td class="px-4 py-2 text-slate-500">${r.table_no}</td>
+            <td class="px-4 py-2 font-sans">${r.checker_name}</td>
+            <td class="px-4 py-2 font-sans">${r.packer_name}</td>
+            <td class="px-4 py-2 text-slate-400">${new Date(r.timestamp || Date.now()).toLocaleTimeString()}</td>
+            <td class="px-4 py-2">
+              <button onclick="deleteB2CRecord('${r.id || ''}', '${r.awb_no}')" class="text-xs text-red-600 hover:text-red-800 font-bold cursor-pointer">🗑️</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        const countEl = document.getElementById('b2cTotalCount');
+        if (countEl) countEl.textContent = `Total: ${livePackingRecords.length} scans (${totalWeight.toFixed(2)} kg)`;
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400 font-sans">Ready for gun scans.</td></tr>';
+      }
+    }
+
+    async function deleteB2CRecord(id, awb) {
+      livePackingRecords = livePackingRecords.filter(r => r.awb_no !== awb);
+      renderLiveB2CTable();
+      showToast(`Removed AWB ${awb}`);
+
+      try {
+        if (supabaseClient) {
+          if (id) await supabaseClient.from('packing_records').delete().eq('id', id);
+          else await supabaseClient.from('packing_records').delete().eq('awb_no', awb);
+        }
+      } catch(e) {}
+    }
+
+    // ================= PICKLIST TRACKER =================
+    async function startPicklistSession() {
+      const pNo = document.getElementById('picklistNoInput').value.trim();
+      const qty = parseInt(document.getElementById('picklistQtyInput').value) || 0;
+      const picker = document.getElementById('pickerSelect').value;
+
+      if (!pNo || qty <= 0) {
+        showToast("Enter Picklist # and Quantity", false);
+        return;
+      }
+
+      const item = {
+        picklist_no: pNo,
+        total_qty: qty,
+        picker_name: picker,
+        status: 'Processing',
+        user_email: currentUser.email
+      };
+
+      try {
+        if (supabaseClient) {
+          const { data, error } = await supabaseClient.from('picklist_sessions').insert([item]).select().single();
+          if (data) localPicklists.unshift(data);
+          else localPicklists.unshift(item);
+        } else {
+          localPicklists.unshift(item);
+        }
+        renderPicklists();
+        showToast(`⏱️ Started Batch for ${pNo}`);
+      } catch(e) {
+        localPicklists.unshift(item);
+        renderPicklists();
+      }
+
+      document.getElementById('picklistNoInput').value = '';
+      document.getElementById('picklistQtyInput').value = '';
+    }
+
+    async function syncPicklistsFromCloud() {
+      try {
+        if (supabaseClient) {
+          const { data } = await supabaseClient.from('picklist_sessions').select('*').order('start_time', { ascending: false });
+          if (data && data.length > 0) {
+            localPicklists = data;
+            renderPicklists();
+          }
+        }
+      } catch(e) {}
+    }
+
+    function renderPicklists() {
+      const tbody = document.getElementById('picklistTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (localPicklists.length > 0) {
+        localPicklists.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-bold">${p.picklist_no}</td>
+            <td class="px-4 py-2">${p.total_qty}</td>
+            <td class="px-4 py-2 font-sans">${p.picker_name}</td>
+            <td class="px-4 py-2">${new Date(p.start_time || Date.now()).toLocaleTimeString()}</td>
+            <td class="px-4 py-2 text-amber-600 font-bold">${p.duration_formatted || 'In Progress...'}</td>
+            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${p.status}</span></td>
+            <td class="px-4 py-2">
